@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administratora - Book Lovers</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">📚 Book Lovers</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/books">Książki</a>
+                <a class="nav-link" href="/admin">Panel Admin</a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-link nav-link">Wyloguj</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mt-4">
+        <h1>Panel Administratora</h1>
+        
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Zarządzanie książkami</h2>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tytuł</th>
+                                <th>Autor</th>
+                                <th>ISBN</th>
+                                <th>Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="book : ${books}">
+                                <td th:text="${book.id}">1</td>
+                                <td th:text="${book.title}">Tytuł</td>
+                                <td th:text="${book.author}">Autor</td>
+                                <td th:text="${book.isbn}">ISBN</td>
+                                <td>
+                                    <a th:href="@{/books/{id}(id=${book.id})}" class="btn btn-sm btn-primary">Szczegóły</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

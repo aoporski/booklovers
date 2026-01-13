@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${book.title} + ' - Book Lovers'">Szczegóły książki</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">📚 Book Lovers</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/books">Książki</a>
+                <a class="nav-link" sec:authorize="isAuthenticated()" href="/my-books">Moja biblioteczka</a>
+                <a class="nav-link" sec:authorize="isAuthenticated()" href="/profile">Profil</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mt-4">
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <h1 th:text="${book.title}">Tytuł</h1>
+                <p><strong>Autor:</strong> <span th:text="${book.author}">Autor</span></p>
+                <p th:if="${book.isbn}"><strong>ISBN:</strong> <span th:text="${book.isbn}"></span></p>
+                <p th:if="${book.publisher}"><strong>Wydawnictwo:</strong> <span th:text="${book.publisher}"></span></p>
+                <p th:if="${book.publicationDate}"><strong>Data wydania:</strong> <span th:text="${#temporals.format(book.publicationDate, 'dd.MM.yyyy')}"></span></p>
+                <p th:if="${book.pageCount}"><strong>Liczba stron:</strong> <span th:text="${book.pageCount}"></span></p>
+                <p th:if="${book.description}"><strong>Opis:</strong> <span th:text="${book.description}"></span></p>
+                <p th:if="${book.averageRating != null}">
+                    <strong>Średnia ocena:</strong> <span th:text="${#numbers.formatDecimal(book.averageRating, 1, 2)}">0.0</span> ⭐
+                    (<span th:text="${book.ratingsCount}">0</span> ocen)
+                </p>
+                
+                <div sec:authorize="isAuthenticated()" class="mt-3">
+                    <form th:action="@{/books/{id}/add-to-library(id=${book.id})}" method="post" class="d-inline">
+                        <div class="input-group" style="max-width: 400px;">
+                            <input type="text" name="shelfName" class="form-control" placeholder="Kategoria (np. Do przeczytania)" value="Moja biblioteczka">
+                            <button type="submit" class="btn btn-success">Dodaj do biblioteczki</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <h2>Recenzje</h2>
+            <div sec:authorize="isAuthenticated()" class="mb-4">
+                <h3>Dodaj recenzję</h3>
+                <form th:action="@{/books/{id}/reviews(id=${book.id})}" th:object="${reviewDto}" method="post">
+                    <div class="mb-3">
+                        <textarea class="form-control" th:field="*{content}" rows="5" placeholder="Napisz recenzję..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Dodaj recenzję</button>
+                </form>
+            </div>
+            
+            <div th:each="review : ${reviews}" class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title" th:text="${review.username}">Użytkownik</h5>
+                    <p class="card-text" th:text="${review.content}">Treść recenzji</p>
+                    <small class="text-muted" th:text="${#temporals.format(review.createdAt, 'dd.MM.yyyy HH:mm')}">Data</small>
+                </div>
+            </div>
+            
+            <div th:if="${#lists.isEmpty(reviews)}" class="alert alert-info">
+                Brak recenzji dla tej książki.
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

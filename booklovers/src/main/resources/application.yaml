@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: booklovers
+  profiles:
+    active: oracle
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+---
+# H2 Database Configuration (default)
+# spring:
+#   config:
+#     activate:
+#       on-profile: h2
+#   datasource:
+#     url: jdbc:h2:mem:bookloversdb
+#     username: sa
+#     password:
+#     driver-class-name: org.h2.Driver
+#   h2:
+#     console:
+#       enabled: true
+#       path: /h2-console
+#   jpa:
+#     database-platform: org.hibernate.dialect.H2Dialect
+#     hibernate:
+#       ddl-auto: create-drop
+
+---
+# Oracle Database Configuration
+spring:
+  config:
+    activate:
+      on-profile: oracle
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:oracle:thin:@oracle-db:1521/XEPDB1}
+    username: ${SPRING_DATASOURCE_USERNAME:admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:secret}
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    hibernate:
+      ddl-auto: update
