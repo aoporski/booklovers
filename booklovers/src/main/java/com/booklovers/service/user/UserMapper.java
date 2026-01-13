@@ -20,6 +20,7 @@ public class UserMapper {
                 .lastName(user.getLastName())
                 .bio(user.getBio())
                 .role(user.getRole())
+                .isBlocked(user.getIsBlocked())
                 .createdAt(user.getCreatedAt())
                 .booksCount(user.getUserBooks() != null ? 
                     (int) user.getUserBooks().stream().map(ub -> ub.getBook().getId()).distinct().count() : 0)

@@ -17,4 +17,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     
     @Query("SELECT b FROM Book b WHERE b.title LIKE %:query% OR b.author LIKE %:query%")
     List<Book> searchBooks(@Param("query") String query);
+    
+    @Query("SELECT COUNT(b) FROM Book b WHERE b.authorEntity.id = :authorId")
+    Long countByAuthorId(@Param("authorId") Long authorId);
 }

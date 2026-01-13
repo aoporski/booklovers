@@ -12,10 +12,17 @@ public class BookMapper {
             return null;
         }
         
+        // Jeśli książka ma przypisanego autora (authorEntity), użyj jego pełnego imienia
+        String authorName = book.getAuthor();
+        if (book.getAuthorEntity() != null) {
+            authorName = book.getAuthorEntity().getFullName();
+        }
+        
         return BookDto.builder()
                 .id(book.getId())
                 .title(book.getTitle())
-                .author(book.getAuthor())
+                .author(authorName) // Pełne imię autora lub fallback do pola author
+                .authorId(book.getAuthorEntity() != null ? book.getAuthorEntity().getId() : null)
                 .isbn(book.getIsbn())
                 .description(book.getDescription())
                 .publisher(book.getPublisher())
@@ -34,10 +41,11 @@ public class BookMapper {
             return null;
         }
         
+        // authorEntity będzie ustawione w BookServiceImp na podstawie authorId
         return Book.builder()
                 .id(dto.getId())
                 .title(dto.getTitle())
-                .author(dto.getAuthor())
+                .author(dto.getAuthor()) // Zachowane dla kompatybilności wstecznej
                 .isbn(dto.getIsbn())
                 .description(dto.getDescription())
                 .publisher(dto.getPublisher())

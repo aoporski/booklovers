@@ -19,8 +19,9 @@ public class BookDto {
     @NotBlank(message = "Title is required")
     private String title;
     
-    @NotBlank(message = "Author is required")
-    private String author;
+    private String author; // Zachowane dla kompatybilności wstecznej (wyświetlanie)
+    
+    private Long authorId; // ID autora z encji Author (używane przy dodawaniu/edycji) - wymagane przy tworzeniu/edycji
     
     private String isbn;
     private String description;

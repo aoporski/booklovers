@@ -1,5 +1,6 @@
 package com.booklovers.service.review;
 
+import com.booklovers.dto.RatingDto;
 import com.booklovers.dto.ReviewDto;
 import com.booklovers.entity.Book;
 import com.booklovers.entity.Review;
@@ -7,10 +8,12 @@ import com.booklovers.entity.User;
 import com.booklovers.repository.BookRepository;
 import com.booklovers.repository.ReviewRepository;
 import com.booklovers.repository.UserRepository;
+import com.booklovers.service.rating.RatingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -25,6 +28,7 @@ public class ReviewServiceImp implements ReviewService {
     private final ReviewMapper reviewMapper;
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
+    private final RatingService ratingService;
     
     @Override
     @Transactional
@@ -37,18 +41,40 @@ public class ReviewServiceImp implements ReviewService {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new RuntimeException("Book not found"));
         
-        // Check if user already has a review for this book
         Optional<Review> existingReview = reviewRepository.findByUserIdAndBookId(user.getId(), bookId);
         if (existingReview.isPresent()) {
             throw new IllegalArgumentException("User already has a review for this book");
         }
         
-        Review review = reviewMapper.toEntity(reviewDto);
-        review.setUser(user);
-        review.setBook(book);
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        Review review = Review.builder()
+                .id(null) 
+                .content(reviewDto.getContent())
+                .user(user)
+                .book(book)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
         
         Review savedReview = reviewRepository.save(review);
+        reviewRepository.flush(); // Wymuś zapis do bazy przed kontynuacją
+        
         return reviewMapper.toDto(savedReview);
+    }
+    
+    /**
+     * Tworzy ocenę w osobnej transakcji, aby uniknąć konfliktów z główną transakcją recenzji.
+     * Wywoływane po zapisaniu recenzji.
+     */
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void createRatingAfterReview(Long bookId, Integer ratingValue) {
+        if (ratingValue != null && ratingValue >= 1 && ratingValue <= 5) {
+            RatingDto ratingDto = RatingDto.builder()
+                    .value(ratingValue)
+                    .build();
+            ratingService.createOrUpdateRating(bookId, ratingDto);
+        }
     }
     
     @Override
@@ -93,6 +119,15 @@ public class ReviewServiceImp implements ReviewService {
     }
     
     @Override
+    @Transactional
+    public void deleteReviewAsAdmin(Long id) {
+        Review review = reviewRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Review not found"));
+        
+        reviewRepository.deleteById(id);
+    }
+    
+    @Override
     public Optional<ReviewDto> getReviewById(Long id) {
         return reviewRepository.findById(id)
                 .map(reviewMapper::toDto);
@@ -108,6 +143,13 @@ public class ReviewServiceImp implements ReviewService {
     @Override
     public List<ReviewDto> getReviewsByUserId(Long userId) {
         return reviewRepository.findByUserId(userId).stream()
+                .map(reviewMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<ReviewDto> getAllReviews() {
+        return reviewRepository.findAll().stream()
                 .map(reviewMapper::toDto)
                 .collect(Collectors.toList());
     }

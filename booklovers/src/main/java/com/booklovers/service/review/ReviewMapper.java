@@ -29,9 +29,13 @@ public class ReviewMapper {
             return null;
         }
         
-        return Review.builder()
-                .id(dto.getId())
-                .content(dto.getContent())
-                .build();
+        Review.ReviewBuilder builder = Review.builder()
+                .content(dto.getContent());
+        
+        if (dto.getId() != null) {
+            builder.id(dto.getId());
+        }
+        
+        return builder.build();
     }
 }

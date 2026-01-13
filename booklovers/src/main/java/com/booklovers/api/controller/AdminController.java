@@ -1,8 +1,11 @@
 package com.booklovers.api.controller;
 
+import com.booklovers.dto.AuthorDto;
 import com.booklovers.dto.BookDto;
 import com.booklovers.dto.UserDto;
+import com.booklovers.service.author.AuthorService;
 import com.booklovers.service.book.BookService;
+import com.booklovers.service.review.ReviewService;
 import com.booklovers.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -27,6 +30,8 @@ public class AdminController {
     
     private final BookService bookService;
     private final UserService userService;
+    private final AuthorService authorService;
+    private final ReviewService reviewService;
     
     @Operation(summary = "Pobierz wszystkie książki (Admin)", description = "Zwraca listę wszystkich książek (dostępne tylko dla administratorów)")
     @ApiResponse(responseCode = "200", description = "Lista książek")
@@ -102,6 +107,127 @@ public class AdminController {
             @Parameter(description = "ID użytkownika", required = true) @PathVariable Long id) {
         try {
             userService.deleteUser(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    @Operation(summary = "Zablokuj użytkownika (Admin)", description = "Blokuje konto użytkownika (dostępne tylko dla administratorów)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Użytkownik został zablokowany"),
+            @ApiResponse(responseCode = "404", description = "Użytkownik nie został znaleziony")
+    })
+    @PutMapping("/users/{id}/block")
+    public ResponseEntity<UserDto> blockUser(
+            @Parameter(description = "ID użytkownika", required = true) @PathVariable Long id) {
+        try {
+            UserDto user = userService.blockUser(id);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    @Operation(summary = "Odblokuj użytkownika (Admin)", description = "Odblokowuje konto użytkownika (dostępne tylko dla administratorów)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Użytkownik został odblokowany"),
+            @ApiResponse(responseCode = "404", description = "Użytkownik nie został znaleziony")
+    })
+    @PutMapping("/users/{id}/unblock")
+    public ResponseEntity<UserDto> unblockUser(
+            @Parameter(description = "ID użytkownika", required = true) @PathVariable Long id) {
+        try {
+            UserDto user = userService.unblockUser(id);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    // ========== AUTHOR MANAGEMENT ==========
+    
+    @Operation(summary = "Pobierz wszystkich autorów (Admin)", description = "Zwraca listę wszystkich autorów (dostępne tylko dla administratorów)")
+    @ApiResponse(responseCode = "200", description = "Lista autorów")
+    @GetMapping("/authors")
+    public ResponseEntity<List<AuthorDto>> getAllAuthors() {
+        List<AuthorDto> authors = authorService.getAllAuthors();
+        return ResponseEntity.ok(authors);
+    }
+    
+    @Operation(summary = "Pobierz autora po ID (Admin)", description = "Zwraca szczegóły autora (dostępne tylko dla administratorów)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Autor został znaleziony"),
+            @ApiResponse(responseCode = "404", description = "Autor nie został znaleziony")
+    })
+    @GetMapping("/authors/{id}")
+    public ResponseEntity<AuthorDto> getAuthorById(
+            @Parameter(description = "ID autora", required = true) @PathVariable Long id) {
+        return authorService.getAuthorById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @Operation(summary = "Utwórz autora (Admin)", description = "Dodaje nowego autora do systemu (dostępne tylko dla administratorów)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Autor został utworzony"),
+            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe")
+    })
+    @PostMapping("/authors")
+    public ResponseEntity<AuthorDto> createAuthor(@Valid @RequestBody AuthorDto authorDto) {
+        try {
+            AuthorDto createdAuthor = authorService.createAuthor(authorDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdAuthor);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+    
+    @Operation(summary = "Aktualizuj autora (Admin)", description = "Aktualizuje dane autora (dostępne tylko dla administratorów)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Autor został zaktualizowany"),
+            @ApiResponse(responseCode = "404", description = "Autor nie został znaleziony")
+    })
+    @PutMapping("/authors/{id}")
+    public ResponseEntity<AuthorDto> updateAuthor(
+            @Parameter(description = "ID autora", required = true) @PathVariable Long id,
+            @Valid @RequestBody AuthorDto authorDto) {
+        try {
+            AuthorDto updatedAuthor = authorService.updateAuthor(id, authorDto);
+            return ResponseEntity.ok(updatedAuthor);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    @Operation(summary = "Usuń autora (Admin)", description = "Usuwa autora z systemu (dostępne tylko dla administratorów)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Autor został usunięty"),
+            @ApiResponse(responseCode = "404", description = "Autor nie został znaleziony")
+    })
+    @DeleteMapping("/authors/{id}")
+    public ResponseEntity<Void> deleteAuthor(
+            @Parameter(description = "ID autora", required = true) @PathVariable Long id) {
+        try {
+            authorService.deleteAuthor(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    // ========== REVIEW MODERATION ==========
+    
+    @Operation(summary = "Usuń recenzję jako admin (Admin)", description = "Usuwa recenzję z systemu - moderacja treści obraźliwych (dostępne tylko dla administratorów)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Recenzja została usunięta"),
+            @ApiResponse(responseCode = "404", description = "Recenzja nie została znaleziona")
+    })
+    @DeleteMapping("/reviews/{id}")
+    public ResponseEntity<Void> deleteReviewAsAdmin(
+            @Parameter(description = "ID recenzji", required = true) @PathVariable Long id) {
+        try {
+            reviewService.deleteReviewAsAdmin(id); // Użyj metody dla admina
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
             return ResponseEntity.notFound().build();

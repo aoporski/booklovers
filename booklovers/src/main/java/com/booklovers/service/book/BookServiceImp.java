@@ -2,9 +2,11 @@ package com.booklovers.service.book;
 
 import com.booklovers.dto.BookDto;
 import com.booklovers.dto.UserBookDto;
+import com.booklovers.entity.Author;
 import com.booklovers.entity.Book;
 import com.booklovers.entity.User;
 import com.booklovers.entity.UserBook;
+import com.booklovers.repository.AuthorRepository;
 import com.booklovers.repository.BookRepository;
 import com.booklovers.repository.RatingRepository;
 import com.booklovers.repository.ReviewRepository;
@@ -26,6 +28,7 @@ public class BookServiceImp implements BookService {
     
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
+    private final AuthorRepository authorRepository;
     private final UserRepository userRepository;
     private final UserBookRepository userBookRepository;
     private final RatingRepository ratingRepository;
@@ -58,6 +61,18 @@ public class BookServiceImp implements BookService {
     @Transactional
     public BookDto createBook(BookDto bookDto) {
         Book book = bookMapper.toEntity(bookDto);
+        
+        // Jeśli podano authorId, przypisz autora do książki
+        if (bookDto.getAuthorId() != null) {
+            Author author = authorRepository.findById(bookDto.getAuthorId())
+                    .orElseThrow(() -> new RuntimeException("Author not found"));
+            book.setAuthorEntity(author);
+            // Ustaw również pole author jako pełne imię autora dla kompatybilności wstecznej
+            if (book.getAuthor() == null || book.getAuthor().isEmpty()) {
+                book.setAuthor(author.getFullName());
+            }
+        }
+        
         Book savedBook = bookRepository.save(book);
         return bookMapper.toDto(savedBook);
     }
@@ -71,9 +86,19 @@ public class BookServiceImp implements BookService {
         if (bookDto.getTitle() != null) {
             book.setTitle(bookDto.getTitle());
         }
-        if (bookDto.getAuthor() != null) {
+        
+        // Jeśli podano authorId, przypisz autora do książki
+        if (bookDto.getAuthorId() != null) {
+            Author author = authorRepository.findById(bookDto.getAuthorId())
+                    .orElseThrow(() -> new RuntimeException("Author not found"));
+            book.setAuthorEntity(author);
+            // Ustaw również pole author jako pełne imię autora dla kompatybilności wstecznej
+            book.setAuthor(author.getFullName());
+        } else if (bookDto.getAuthor() != null) {
+            // Fallback: jeśli nie podano authorId, użyj pola author
             book.setAuthor(bookDto.getAuthor());
         }
+        
         if (bookDto.getIsbn() != null) {
             book.setIsbn(bookDto.getIsbn());
         }

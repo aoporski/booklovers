@@ -33,6 +33,7 @@ public class UserDto {
     private String lastName;
     private String bio;
     private User.Role role;
+    private Boolean isBlocked;
     private LocalDateTime createdAt;
     private Integer booksCount;
     private Integer reviewsCount;

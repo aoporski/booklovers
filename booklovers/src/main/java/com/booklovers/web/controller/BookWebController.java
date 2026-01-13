@@ -1,9 +1,13 @@
 package com.booklovers.web.controller;
 
+import com.booklovers.dto.AuthorDto;
 import com.booklovers.dto.BookDto;
+import com.booklovers.dto.RatingDto;
 import com.booklovers.dto.ReviewDto;
 import com.booklovers.dto.UserDto;
+import com.booklovers.service.author.AuthorService;
 import com.booklovers.service.book.BookService;
+import com.booklovers.service.rating.RatingService;
 import com.booklovers.service.review.ReviewService;
 import com.booklovers.service.user.UserService;
 import jakarta.validation.Valid;
@@ -15,6 +19,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 @RequiredArgsConstructor
@@ -22,7 +28,9 @@ public class BookWebController {
     
     private final BookService bookService;
     private final ReviewService reviewService;
+    private final RatingService ratingService;
     private final UserService userService;
+    private final AuthorService authorService;
     
     @GetMapping("/books")
     public String booksPage(Model model, @RequestParam(required = false) String search) {
@@ -43,6 +51,22 @@ public class BookWebController {
                 .orElseThrow(() -> new RuntimeException("Book not found"));
         
         List<ReviewDto> reviews = reviewService.getReviewsByBookId(id);
+        List<RatingDto> ratings = ratingService.getRatingsByBookId(id);
+        
+        // Mapowanie ocen do recenzji (po userId)
+        Map<Long, Integer> ratingMap = ratings.stream()
+                .collect(Collectors.toMap(
+                        RatingDto::getUserId,
+                        RatingDto::getValue,
+                        (existing, replacement) -> existing
+                ));
+        
+        // Dodaj oceny do recenzji
+        reviews.forEach(review -> {
+            if (review.getUserId() != null && ratingMap.containsKey(review.getUserId())) {
+                review.setRatingValue(ratingMap.get(review.getUserId()));
+            }
+        });
         
         model.addAttribute("book", book);
         model.addAttribute("reviews", reviews);
@@ -64,13 +88,17 @@ public class BookWebController {
     
     @GetMapping("/books/add")
     public String addBookForm(Model model) {
+        List<AuthorDto> authors = authorService.getAllAuthors();
         model.addAttribute("bookDto", new BookDto());
+        model.addAttribute("authors", authors);
         return "add-book";
     }
     
     @PostMapping("/books/add")
-    public String addBook(@Valid @ModelAttribute BookDto bookDto, BindingResult result, RedirectAttributes redirectAttributes) {
+    public String addBook(@Valid @ModelAttribute BookDto bookDto, BindingResult result, RedirectAttributes redirectAttributes, Model model) {
         if (result.hasErrors()) {
+            List<AuthorDto> authors = authorService.getAllAuthors();
+            model.addAttribute("authors", authors);
             return "add-book";
         }
         try {
@@ -103,6 +131,17 @@ public class BookWebController {
         }
         try {
             reviewService.createReview(id, reviewDto);
+            
+            // Utwórz ocenę w osobnej transakcji, jeśli została podana
+            if (reviewDto.getRatingValue() != null && reviewDto.getRatingValue() >= 1 && reviewDto.getRatingValue() <= 5) {
+                try {
+                    reviewService.createRatingAfterReview(id, reviewDto.getRatingValue());
+                } catch (Exception e) {
+                    // Jeśli nie udało się utworzyć oceny, nie przerywaj - recenzja już jest zapisana
+                    System.err.println("Warning: Could not create rating for review: " + e.getMessage());
+                }
+            }
+            
             redirectAttributes.addFlashAttribute("success", "Recenzja została dodana!");
             return "redirect:/books/" + id;
         } catch (IllegalArgumentException e) {

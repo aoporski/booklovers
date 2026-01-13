@@ -108,4 +108,24 @@ public class UserServiceImp implements UserService {
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
     }
+    
+    @Override
+    @Transactional
+    public UserDto blockUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setIsBlocked(true);
+        User saved = userRepository.save(user);
+        return userMapper.toDto(saved);
+    }
+    
+    @Override
+    @Transactional
+    public UserDto unblockUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setIsBlocked(false);
+        User saved = userRepository.save(user);
+        return userMapper.toDto(saved);
+    }
 }

@@ -23,9 +23,38 @@
     <div class="container mt-4">
         <h1>Panel Administratora</h1>
         
-        <div class="row">
-            <div class="col-md-12">
-                <h2>Zarządzanie książkami</h2>
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="books-tab" data-bs-toggle="tab" data-bs-target="#books" type="button" role="tab">Książki</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">Użytkownicy</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="authors-tab" data-bs-toggle="tab" data-bs-target="#authors" type="button" role="tab">Autorzy</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">Recenzje</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="adminTabsContent">
+            <!-- Books Tab -->
+            <div class="tab-pane fade show active" id="books" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>Zarządzanie książkami</h2>
+                    <a th:href="@{/books/add}" class="btn btn-success">+ Dodaj książkę</a>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -42,13 +71,141 @@
                                 <td th:text="${book.id}">1</td>
                                 <td th:text="${book.title}">Tytuł</td>
                                 <td th:text="${book.author}">Autor</td>
-                                <td th:text="${book.isbn}">ISBN</td>
+                                <td th:text="${book.isbn ?: '-'}">ISBN</td>
                                 <td>
-                                    <a th:href="@{/books/{id}(id=${book.id})}" class="btn btn-sm btn-primary">Szczegóły</a>
+                                    <a th:href="@{/books/{id}(id=${book.id})}" class="btn btn-sm btn-info">Szczegóły</a>
+                                    <a th:href="@{/admin/books/{id}/edit(id=${book.id})}" class="btn btn-sm btn-warning">Edytuj</a>
+                                    <form th:action="@{/admin/books/{id}/delete(id=${book.id})}" method="post" class="d-inline" onsubmit="return confirm('Czy na pewno chcesz usunąć tę książkę?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">Usuń</button>
+                                    </form>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+            
+            <!-- Users Tab -->
+            <div class="tab-pane fade" id="users" role="tabpanel">
+                <h2>Zarządzanie użytkownikami</h2>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nazwa użytkownika</th>
+                                <th>Email</th>
+                                <th>Rola</th>
+                                <th>Status</th>
+                                <th>Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="user : ${users}">
+                                <td th:text="${user.id}">1</td>
+                                <td th:text="${user.username}">username</td>
+                                <td th:text="${user.email}">email</td>
+                                <td>
+                                    <span class="badge" th:classappend="${user.role == T(com.booklovers.entity.User.Role).ADMIN} ? 'bg-danger' : 'bg-secondary'" 
+                                          th:text="${user.role}">USER</span>
+                                </td>
+                                <td>
+                                    <span class="badge" th:classappend="${user.isBlocked} ? 'bg-danger' : 'bg-success'"
+                                          th:text="${user.isBlocked} ? 'Zablokowany' : 'Aktywny'">Aktywny</span>
+                                </td>
+                                <td>
+                                    <form th:if="${!user.isBlocked}" th:action="@{/admin/users/{id}/block(id=${user.id})}" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-warning">Zablokuj</button>
+                                    </form>
+                                    <form th:if="${user.isBlocked}" th:action="@{/admin/users/{id}/unblock(id=${user.id})}" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-success">Odblokuj</button>
+                                    </form>
+                                    <form th:action="@{/admin/users/{id}/delete(id=${user.id})}" method="post" class="d-inline" onsubmit="return confirm('Czy na pewno chcesz usunąć tego użytkownika?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">Usuń</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Authors Tab -->
+            <div class="tab-pane fade" id="authors" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>Zarządzanie autorami</h2>
+                    <a th:href="@{/admin/authors/add}" class="btn btn-success">+ Dodaj autora</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Imię</th>
+                                <th>Nazwisko</th>
+                                <th>Narodowość</th>
+                                <th>Liczba książek</th>
+                                <th>Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="author : ${authors}">
+                                <td th:text="${author.id}">1</td>
+                                <td th:text="${author.firstName}">Imię</td>
+                                <td th:text="${author.lastName}">Nazwisko</td>
+                                <td th:text="${author.nationality ?: '-'}">Narodowość</td>
+                                <td th:text="${author.booksCount ?: 0}">0</td>
+                                <td>
+                                    <a th:href="@{/admin/authors/{id}/edit(id=${author.id})}" class="btn btn-sm btn-warning">Edytuj</a>
+                                    <form th:action="@{/admin/authors/{id}/delete(id=${author.id})}" method="post" class="d-inline" onsubmit="return confirm('Czy na pewno chcesz usunąć tego autora?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">Usuń</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Reviews Tab -->
+            <div class="tab-pane fade" id="reviews" role="tabpanel">
+                <h2>Moderacja recenzji</h2>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Użytkownik</th>
+                                <th>Książka</th>
+                                <th>Treść</th>
+                                <th>Data</th>
+                                <th>Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="review : ${reviews}">
+                                <td th:text="${review.id}">1</td>
+                                <td th:text="${review.username}">Użytkownik</td>
+                                <td>
+                                    <a th:href="@{/books/{id}(id=${review.bookId})}" th:text="${review.bookTitle}">Tytuł książki</a>
+                                </td>
+                                <td>
+                                    <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" 
+                                         th:text="${review.content}">Treść recenzji...</div>
+                                </td>
+                                <td th:text="${#temporals.format(review.createdAt, 'dd.MM.yyyy HH:mm')}">Data</td>
+                                <td>
+                                    <a th:href="@{/books/{id}(id=${review.bookId})}" class="btn btn-sm btn-info">Zobacz</a>
+                                    <form th:action="@{/admin/reviews/{id}/delete(id=${review.id})}" method="post" class="d-inline" onsubmit="return confirm('Czy na pewno chcesz usunąć tę recenzję?');">
+                                        <button type="submit" class="btn btn-sm btn-danger">Usuń</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div th:if="${#lists.isEmpty(reviews)}" class="alert alert-info mt-3">
+                        Brak recenzji w systemie.
+                    </div>
                 </div>
             </div>
         </div>

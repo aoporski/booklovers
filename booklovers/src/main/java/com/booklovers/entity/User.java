@@ -45,6 +45,10 @@ public class User implements UserDetails {
     @Builder.Default
     private Role role = Role.USER;
     
+    @Column(name = "IS_BLOCKED", nullable = false)
+    @Builder.Default
+    private Boolean isBlocked = false;
+    
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -70,7 +74,7 @@ public class User implements UserDetails {
     
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return !isBlocked;
     }
     
     @Override
@@ -80,7 +84,7 @@ public class User implements UserDetails {
     
     @Override
     public boolean isEnabled() {
-        return true;
+        return !isBlocked;
     }
     
     public enum Role {
