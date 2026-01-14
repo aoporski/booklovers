@@ -22,27 +22,129 @@
     </nav>
     
     <div class="container mt-4">
-        <h1>Moja biblioteczka</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Moja biblioteczka</h1>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createShelfModal">
+                + Nowa półka
+            </button>
+        </div>
+        
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
         
         <div class="row">
-            <div th:each="book : ${books}" class="col-md-4 mb-4">
+            <div class="col-md-3">
                 <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title" th:text="${book.title}">Tytuł</h5>
-                        <p class="card-text">
-                            <strong>Autor:</strong> <span th:text="${book.author}">Autor</span>
-                        </p>
-                        <p class="card-text" th:if="${book.averageRating != null}">
-                            <strong>Ocena:</strong> <span th:text="${#numbers.formatDecimal(book.averageRating, 1, 2)}">0.0</span> ⭐
-                        </p>
-                        <a th:href="@{/books/{id}(id=${book.id})}" class="btn btn-primary">Szczegóły</a>
+                    <div class="card-header">
+                        <h5 class="mb-0">Moje półki</h5>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a th:href="@{/my-books}" 
+                           class="list-group-item list-group-item-action"
+                           th:classappend="${currentShelf == null ? 'active' : ''}">
+                            Wszystkie książki
+                            <span class="badge bg-secondary float-end" th:text="${#lists.size(books)}">0</span>
+                        </a>
+                        <a th:each="shelf : ${shelves}"
+                           th:href="@{/my-books/shelves/{shelfName}(shelfName=${shelf})}"
+                           class="list-group-item list-group-item-action"
+                           th:classappend="${currentShelf == shelf ? 'active' : ''}">
+                            <span th:text="${shelf}">Półka</span>
+                            <form th:if="${currentShelf == shelf && !defaultShelves.contains(shelf)}"
+                                  th:action="@{/my-books/shelves/{shelfName}/delete(shelfName=${shelf})}"
+                                  method="post" class="d-inline float-end"
+                                  onsubmit="return confirm('Czy na pewno chcesz usunąć tę półkę? Wszystkie książki zostaną usunięte.');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">🗑️</button>
+                            </form>
+                        </a>
                     </div>
                 </div>
             </div>
+            
+            <div class="col-md-9">
+                <div th:if="${currentShelf != null}" class="mb-3">
+                    <h3 th:text="${'Półka: ' + currentShelf}">Półka</h3>
+                </div>
+                
+                <div class="row">
+                    <div th:each="book : ${books}" class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title" th:text="${book.title}">Tytuł</h5>
+                                <p class="card-text">
+                                    <strong>Autor:</strong> <span th:text="${book.author}">Autor</span>
+                                </p>
+                                <p class="card-text" th:if="${book.averageRating != null && book.averageRating > 0}">
+                                    <strong>Ocena:</strong> 
+                                    <span class="badge bg-warning text-dark" th:text="${#numbers.formatDecimal(book.averageRating, 1, 2)}">0.0</span>
+                                    <span th:each="i : ${#numbers.sequence(1, book.averageRating.intValue())}">⭐</span>
+                                </p>
+                                <div class="mt-auto">
+                                    <a th:href="@{/books/{id}(id=${book.id})}" class="btn btn-primary btn-sm w-100 mb-2">Szczegóły</a>
+                                    <div th:if="${currentShelf != null}" class="dropdown">
+                                        <button class="btn btn-outline-secondary btn-sm w-100 dropdown-toggle" type="button" 
+                                                data-bs-toggle="dropdown" aria-expanded="false">
+                                            Przenieś do...
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li th:each="targetShelf : ${shelves}">
+                                                <form th:if="${targetShelf != currentShelf}"
+                                                      th:action="@{/my-books/{bookId}/move(bookId=${book.id})}"
+                                                      method="post" class="d-inline">
+                                                    <input type="hidden" name="fromShelf" th:value="${currentShelf}">
+                                                    <input type="hidden" name="toShelf" th:value="${targetShelf}">
+                                                    <button type="submit" class="dropdown-item" th:text="${targetShelf}"></button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <form th:if="${currentShelf != null}"
+                                          th:action="@{/books/{id}/remove-from-library(id=${book.id})}"
+                                          method="post" class="mt-2"
+                                          onsubmit="return confirm('Czy na pewno chcesz usunąć tę książkę z półki?');">
+                                        <input type="hidden" name="shelfName" th:value="${currentShelf}">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm w-100">Usuń z półki</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div th:if="${#lists.isEmpty(books)}" class="alert alert-info">
+                    <p th:if="${currentShelf != null}">
+                        Ta półka jest pusta. <a th:href="@{/books}">Przeglądaj książki</a> aby dodać je do tej półki.
+                    </p>
+                    <p th:if="${currentShelf == null}">
+                        Twoja biblioteczka jest pusta. <a href="/books">Przeglądaj książki</a> aby dodać je do biblioteczki.
+                    </p>
+                </div>
+            </div>
         </div>
-        
-        <div th:if="${#lists.isEmpty(books)}" class="alert alert-info">
-            Twoja biblioteczka jest pusta. <a href="/books">Przeglądaj książki</a> aby dodać je do biblioteczki.
+    </div>
+    
+    <div class="modal fade" id="createShelfModal" tabindex="-1" aria-labelledby="createShelfModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createShelfModalLabel">Utwórz nową półkę</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form th:action="@{/my-books/shelves/create}" method="post">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="shelfName" class="form-label">Nazwa półki</label>
+                            <input type="text" class="form-control" id="shelfName" name="shelfName" 
+                                   placeholder="np. Fantastyka, Ulubione" required>
+                            <small class="form-text text-muted">Domyślne półki: Przeczytane, Chcę przeczytać, Teraz czytam</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                        <button type="submit" class="btn btn-primary">Utwórz</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
     

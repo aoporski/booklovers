@@ -6,6 +6,7 @@ import com.booklovers.entity.Author;
 import com.booklovers.entity.Book;
 import com.booklovers.entity.User;
 import com.booklovers.entity.UserBook;
+import com.booklovers.exception.BadRequestException;
 import com.booklovers.exception.ConflictException;
 import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.repository.AuthorRepository;
@@ -178,7 +179,22 @@ public class BookServiceImp implements BookService {
     
     @Override
     public List<String> getUserShelves(Long userId) {
-        return userBookRepository.findDistinctShelfNamesByUserId(userId);
+        List<String> shelves = userBookRepository.findDistinctShelfNamesByUserId(userId);
+        if (shelves.isEmpty()) {
+            return getDefaultShelves();
+        }
+        List<String> defaultShelves = getDefaultShelves();
+        for (String defaultShelf : defaultShelves) {
+            if (!shelves.contains(defaultShelf)) {
+                shelves.add(defaultShelf);
+            }
+        }
+        return shelves;
+    }
+    
+    @Override
+    public List<String> getDefaultShelves() {
+        return List.of("Przeczytane", "Chcę przeczytać", "Teraz czytam");
     }
     
     @Override
@@ -260,6 +276,18 @@ public class BookServiceImp implements BookService {
         
         userBook.setShelfName(finalToShelf);
         userBookRepository.save(userBook);
+    }
+    
+    @Override
+    @Transactional
+    public void deleteShelf(Long userId, String shelfName) {
+        List<String> defaultShelves = getDefaultShelves();
+        if (defaultShelves.contains(shelfName)) {
+            throw new BadRequestException("Cannot delete default shelf: " + shelfName);
+        }
+        
+        List<UserBook> userBooks = userBookRepository.findByUserIdAndShelfName(userId, shelfName);
+        userBookRepository.deleteAll(userBooks);
     }
     
     private UserBookDto toUserBookDto(UserBook userBook) {

@@ -38,9 +38,13 @@
                 
                 <div sec:authorize="isAuthenticated()" class="mt-3">
                     <form th:action="@{/books/{id}/add-to-library(id=${book.id})}" method="post" class="d-inline">
-                        <div class="input-group" style="max-width: 400px;">
-                            <input type="text" name="shelfName" class="form-control" placeholder="Kategoria (np. Do przeczytania)" value="Moja biblioteczka">
-                            <button type="submit" class="btn btn-success">Dodaj do biblioteczki</button>
+                        <div class="input-group" style="max-width: 500px;">
+                            <select name="shelfName" class="form-select" required>
+                                <option value="">Wybierz półkę</option>
+                                <option th:each="shelf : ${userShelves}"
+                                        th:value="${shelf}" th:text="${shelf}"></option>
+                            </select>
+                            <button type="submit" class="btn btn-success">Dodaj do półki</button>
                         </div>
                     </form>
                 </div>

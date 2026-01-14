@@ -17,7 +17,9 @@ public interface BookService {
     List<BookDto> getUserBooks(Long userId);
     List<BookDto> getUserBooksByShelf(Long userId, String shelfName);
     List<String> getUserShelves(Long userId);
+    List<String> getDefaultShelves();
     UserBookDto addBookToUserLibrary(Long bookId, String shelfName);
     void removeBookFromUserLibrary(Long bookId, String shelfName);
     void moveBookToShelf(Long bookId, String fromShelf, String toShelf);
+    void deleteShelf(Long userId, String shelfName);
 }

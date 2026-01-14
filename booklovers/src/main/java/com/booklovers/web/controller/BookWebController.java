@@ -72,11 +72,13 @@ public class BookWebController {
         });
         
         UserDto currentUser = null;
+        List<String> userShelves = List.of();
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated() 
             && !authentication.getName().equals("anonymousUser")) {
             try {
                 currentUser = userService.getCurrentUser();
+                userShelves = bookService.getUserShelves(currentUser.getId());
             } catch (Exception e) {
                 log.debug("Could not get current user: {}", e.getMessage());
             }
@@ -86,15 +88,91 @@ public class BookWebController {
         model.addAttribute("reviews", reviews);
         model.addAttribute("reviewDto", new ReviewDto());
         model.addAttribute("currentUser", currentUser);
+        model.addAttribute("userShelves", userShelves);
         return "book-details";
     }
     
     @GetMapping("/my-books")
-    public String myBooksPage(Model model) {
+    public String myBooksPage(Model model, @RequestParam(required = false) String shelf) {
         UserDto currentUser = userService.getCurrentUser();
-        List<BookDto> books = bookService.getUserBooks(currentUser.getId());
+        List<String> shelves = bookService.getUserShelves(currentUser.getId());
+        List<String> defaultShelves = bookService.getDefaultShelves();
+        
+        List<BookDto> books;
+        if (shelf != null && !shelf.isEmpty()) {
+            books = bookService.getUserBooksByShelf(currentUser.getId(), shelf);
+        } else {
+            books = bookService.getUserBooks(currentUser.getId());
+        }
+        
         model.addAttribute("books", books);
+        model.addAttribute("shelves", shelves);
+        model.addAttribute("defaultShelves", defaultShelves);
+        model.addAttribute("currentShelf", shelf);
         return "my-books";
+    }
+    
+    @GetMapping("/my-books/shelves/{shelfName}")
+    public String shelfBooksPage(@PathVariable String shelfName, Model model) {
+        UserDto currentUser = userService.getCurrentUser();
+        List<BookDto> books = bookService.getUserBooksByShelf(currentUser.getId(), shelfName);
+        List<String> shelves = bookService.getUserShelves(currentUser.getId());
+        List<String> defaultShelves = bookService.getDefaultShelves();
+        
+        model.addAttribute("books", books);
+        model.addAttribute("shelves", shelves);
+        model.addAttribute("defaultShelves", defaultShelves);
+        model.addAttribute("currentShelf", shelfName);
+        return "my-books";
+    }
+    
+    @PostMapping("/my-books/shelves/create")
+    public String createShelf(@RequestParam String shelfName, RedirectAttributes redirectAttributes) {
+        if (shelfName == null || shelfName.trim().isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Nazwa półki nie może być pusta");
+            return "redirect:/my-books";
+        }
+        
+        List<String> defaultShelves = bookService.getDefaultShelves();
+        if (defaultShelves.contains(shelfName.trim())) {
+            redirectAttributes.addFlashAttribute("error", "Ta półka już istnieje jako domyślna");
+            return "redirect:/my-books";
+        }
+        
+        redirectAttributes.addFlashAttribute("success", "Półka '" + shelfName.trim() + "' została utworzona. Dodaj książki, aby zobaczyć ją na liście.");
+        return "redirect:/my-books";
+    }
+    
+    @PostMapping("/my-books/shelves/{shelfName}/delete")
+    public String deleteShelf(@PathVariable String shelfName, RedirectAttributes redirectAttributes) {
+        try {
+            UserDto currentUser = userService.getCurrentUser();
+            bookService.deleteShelf(currentUser.getId(), shelfName);
+            redirectAttributes.addFlashAttribute("success", "Półka '" + shelfName + "' została usunięta");
+        } catch (com.booklovers.exception.BadRequestException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error deleting shelf: ", e);
+            redirectAttributes.addFlashAttribute("error", "Wystąpił błąd podczas usuwania półki: " + e.getMessage());
+        }
+        return "redirect:/my-books";
+    }
+    
+    @PostMapping("/my-books/{bookId}/move")
+    public String moveBookToShelf(@PathVariable Long bookId, 
+                                  @RequestParam String fromShelf,
+                                  @RequestParam String toShelf,
+                                  RedirectAttributes redirectAttributes) {
+        try {
+            bookService.moveBookToShelf(bookId, fromShelf, toShelf);
+            redirectAttributes.addFlashAttribute("success", "Książka została przeniesiona z '" + fromShelf + "' do '" + toShelf + "'");
+        } catch (com.booklovers.exception.ConflictException e) {
+            redirectAttributes.addFlashAttribute("error", "Książka już znajduje się w tej półce");
+        } catch (Exception e) {
+            log.error("Error moving book: ", e);
+            redirectAttributes.addFlashAttribute("error", "Wystąpił błąd podczas przenoszenia książki: " + e.getMessage());
+        }
+        return "redirect:/my-books?shelf=" + toShelf;
     }
     
     @GetMapping("/books/add")
@@ -119,9 +197,28 @@ public class BookWebController {
     
     @PostMapping("/books/{id}/add-to-library")
     public String addBookToLibrary(@PathVariable Long id, @RequestParam(defaultValue = "Moja biblioteczka") String shelfName, RedirectAttributes redirectAttributes) {
-        bookService.addBookToUserLibrary(id, shelfName);
-        redirectAttributes.addFlashAttribute("success", "Książka została dodana do biblioteczki!");
+        try {
+            bookService.addBookToUserLibrary(id, shelfName);
+            redirectAttributes.addFlashAttribute("success", "Książka została dodana do półki '" + shelfName + "'!");
+        } catch (com.booklovers.exception.ConflictException e) {
+            redirectAttributes.addFlashAttribute("error", "Książka już znajduje się w tej półce");
+        } catch (Exception e) {
+            log.error("Error adding book to library: ", e);
+            redirectAttributes.addFlashAttribute("error", "Wystąpił błąd podczas dodawania książki: " + e.getMessage());
+        }
         return "redirect:/books/" + id;
+    }
+    
+    @PostMapping("/books/{id}/remove-from-library")
+    public String removeBookFromLibrary(@PathVariable Long id, @RequestParam String shelfName, RedirectAttributes redirectAttributes) {
+        try {
+            bookService.removeBookFromUserLibrary(id, shelfName);
+            redirectAttributes.addFlashAttribute("success", "Książka została usunięta z półki '" + shelfName + "'");
+        } catch (Exception e) {
+            log.error("Error removing book from library: ", e);
+            redirectAttributes.addFlashAttribute("error", "Wystąpił błąd podczas usuwania książki: " + e.getMessage());
+        }
+        return "redirect:/my-books?shelf=" + shelfName;
     }
     
     @PostMapping("/books/{id}/reviews")
