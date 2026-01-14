@@ -41,8 +41,7 @@ public class BookController {
             @ApiResponse(responseCode = "404", description = "Książka nie została znaleziona")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<BookDto> getBookById(
-            @Parameter(description = "ID książki", required = true) @PathVariable Long id) {
+    public ResponseEntity<BookDto> getBookById(@Parameter(description = "ID książki", required = true) @PathVariable Long id) {
         return bookService.getBookById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -55,12 +54,8 @@ public class BookController {
     })
     @PostMapping
     public ResponseEntity<BookDto> createBook(@Valid @RequestBody BookDto bookDto) {
-        try {
-            BookDto createdBook = bookService.createBook(bookDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdBook);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+        BookDto createdBook = bookService.createBook(bookDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdBook);
     }
     
     @Operation(summary = "Aktualizuj książkę", description = "Aktualizuje dane książki o podanym ID (wymaga autoryzacji)")
@@ -72,12 +67,8 @@ public class BookController {
     public ResponseEntity<BookDto> updateBook(
             @Parameter(description = "ID książki", required = true) @PathVariable Long id,
             @Valid @RequestBody BookDto bookDto) {
-        try {
-            BookDto updatedBook = bookService.updateBook(id, bookDto);
-            return ResponseEntity.ok(updatedBook);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        BookDto updatedBook = bookService.updateBook(id, bookDto);
+        return ResponseEntity.ok(updatedBook);
     }
     
     @Operation(summary = "Usuń książkę", description = "Usuwa książkę z systemu (wymaga autoryzacji)")
@@ -88,12 +79,8 @@ public class BookController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBook(
             @Parameter(description = "ID książki", required = true) @PathVariable Long id) {
-        try {
-            bookService.deleteBook(id);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        bookService.deleteBook(id);
+        return ResponseEntity.noContent().build();
     }
     
     @Operation(summary = "Wyszukaj książki", description = "Wyszukuje książki po tytule, autorze lub ISBN")
@@ -109,13 +96,9 @@ public class BookController {
     @ApiResponse(responseCode = "200", description = "Lista książek użytkownika")
     @GetMapping("/my-books")
     public ResponseEntity<List<BookDto>> getMyBooks() {
-        try {
-            UserDto currentUser = userService.getCurrentUser();
-            List<BookDto> books = bookService.getUserBooks(currentUser.getId());
-            return ResponseEntity.ok(books);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        UserDto currentUser = userService.getCurrentUser();
+        List<BookDto> books = bookService.getUserBooks(currentUser.getId());
+        return ResponseEntity.ok(books);
     }
     
     @Operation(summary = "Dodaj książkę do biblioteczki", description = "Dodaje książkę do biblioteczki użytkownika na określoną półkę")
@@ -127,12 +110,8 @@ public class BookController {
     public ResponseEntity<UserBookDto> addBookToLibrary(
             @Parameter(description = "ID książki", required = true) @PathVariable Long id,
             @Parameter(description = "Nazwa półki", required = false) @RequestParam(defaultValue = "Moja biblioteczka") String shelfName) {
-        try {
-            UserBookDto userBook = bookService.addBookToUserLibrary(id, shelfName);
-            return ResponseEntity.ok(userBook);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+        UserBookDto userBook = bookService.addBookToUserLibrary(id, shelfName);
+        return ResponseEntity.ok(userBook);
     }
     
     @Operation(summary = "Usuń książkę z biblioteczki", description = "Usuwa książkę z biblioteczki użytkownika z określonej półki")
@@ -144,25 +123,17 @@ public class BookController {
     public ResponseEntity<Void> removeBookFromLibrary(
             @Parameter(description = "ID książki", required = true) @PathVariable Long id,
             @Parameter(description = "Nazwa półki", required = false) @RequestParam(defaultValue = "Moja biblioteczka") String shelfName) {
-        try {
-            bookService.removeBookFromUserLibrary(id, shelfName);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+        bookService.removeBookFromUserLibrary(id, shelfName);
+        return ResponseEntity.noContent().build();
     }
     
     @Operation(summary = "Pobierz moje półki", description = "Zwraca listę wszystkich półek użytkownika")
     @ApiResponse(responseCode = "200", description = "Lista półek użytkownika")
     @GetMapping("/my-books/shelves")
     public ResponseEntity<List<String>> getMyShelves() {
-        try {
-            UserDto currentUser = userService.getCurrentUser();
-            List<String> shelves = bookService.getUserShelves(currentUser.getId());
-            return ResponseEntity.ok(shelves);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        UserDto currentUser = userService.getCurrentUser();
+        List<String> shelves = bookService.getUserShelves(currentUser.getId());
+        return ResponseEntity.ok(shelves);
     }
     
     @Operation(summary = "Pobierz książki z półki", description = "Zwraca listę książek z określonej półki użytkownika")
@@ -170,13 +141,9 @@ public class BookController {
     @GetMapping("/my-books/shelves/{shelfName}")
     public ResponseEntity<List<BookDto>> getMyBooksByShelf(
             @Parameter(description = "Nazwa półki", required = true) @PathVariable String shelfName) {
-        try {
-            UserDto currentUser = userService.getCurrentUser();
-            List<BookDto> books = bookService.getUserBooksByShelf(currentUser.getId(), shelfName);
-            return ResponseEntity.ok(books);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        UserDto currentUser = userService.getCurrentUser();
+        List<BookDto> books = bookService.getUserBooksByShelf(currentUser.getId(), shelfName);
+        return ResponseEntity.ok(books);
     }
     
     @Operation(summary = "Przenieś książkę między półkami", description = "Przenosi książkę z jednej półki na drugą")

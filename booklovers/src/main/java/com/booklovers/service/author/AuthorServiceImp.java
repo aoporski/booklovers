@@ -2,6 +2,7 @@ package com.booklovers.service.author;
 
 import com.booklovers.dto.AuthorDto;
 import com.booklovers.entity.Author;
+import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.repository.AuthorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -45,7 +46,7 @@ public class AuthorServiceImp implements AuthorService {
     @Transactional
     public AuthorDto updateAuthor(Long id, AuthorDto authorDto) {
         Author author = authorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Author not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Author", id));
         
         author.setFirstName(authorDto.getFirstName());
         author.setLastName(authorDto.getLastName());
@@ -62,7 +63,7 @@ public class AuthorServiceImp implements AuthorService {
     @Transactional
     public void deleteAuthor(Long id) {
         Author author = authorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Author not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Author", id));
         authorRepository.delete(author);
     }
     

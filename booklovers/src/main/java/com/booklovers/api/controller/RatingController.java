@@ -32,12 +32,8 @@ public class RatingController {
     public ResponseEntity<RatingDto> createOrUpdateRating(
             @Parameter(description = "ID książki", required = true) @PathVariable Long bookId,
             @Valid @RequestBody RatingDto ratingDto) {
-        try {
-            RatingDto rating = ratingService.createOrUpdateRating(bookId, ratingDto);
-            return ResponseEntity.ok(rating);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+        RatingDto rating = ratingService.createOrUpdateRating(bookId, ratingDto);
+        return ResponseEntity.ok(rating);
     }
     
     @Operation(summary = "Usuń ocenę", description = "Usuwa ocenę książki (wymaga autoryzacji)")
@@ -48,12 +44,8 @@ public class RatingController {
     @DeleteMapping("/books/{bookId}")
     public ResponseEntity<Void> deleteRating(
             @Parameter(description = "ID książki", required = true) @PathVariable Long bookId) {
-        try {
-            ratingService.deleteRating(bookId);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
+        ratingService.deleteRating(bookId);
+        return ResponseEntity.noContent().build();
     }
     
     @Operation(summary = "Pobierz moją ocenę książki", description = "Zwraca ocenę zalogowanego użytkownika dla danej książki")

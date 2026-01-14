@@ -2,6 +2,7 @@ package com.booklovers.service.export;
 
 import com.booklovers.dto.*;
 import com.booklovers.entity.User;
+import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.repository.UserRepository;
 import com.booklovers.service.book.BookMapper;
 import com.booklovers.service.book.BookService;
@@ -35,7 +36,7 @@ public class ExportServiceImp implements ExportService {
     @Override
     public UserDataExportDto exportUserData(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
         
         UserDto userDto = userMapper.toDto(user);
         List<BookDto> books = bookService.getUserBooks(userId);
@@ -73,7 +74,7 @@ public class ExportServiceImp implements ExportService {
             UserDataExportDto data = exportUserData(userId);
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(data);
         } catch (Exception e) {
-            throw new RuntimeException("Error exporting user data", e);
+            throw new com.booklovers.exception.BadRequestException("Error exporting user data", e);
         }
     }
 }

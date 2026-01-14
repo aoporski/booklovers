@@ -32,14 +32,8 @@ public class ReviewController {
     public ResponseEntity<ReviewDto> createReview(
             @Parameter(description = "ID książki", required = true) @PathVariable Long bookId,
             @Valid @RequestBody ReviewDto reviewDto) {
-        try {
-            ReviewDto createdReview = reviewService.createReview(bookId, reviewDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdReview);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        ReviewDto createdReview = reviewService.createReview(bookId, reviewDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdReview);
     }
     
     @Operation(summary = "Aktualizuj recenzję", description = "Aktualizuje recenzję (tylko właściciel recenzji)")
@@ -51,12 +45,8 @@ public class ReviewController {
     public ResponseEntity<ReviewDto> updateReview(
             @Parameter(description = "ID recenzji", required = true) @PathVariable Long id,
             @Valid @RequestBody ReviewDto reviewDto) {
-        try {
-            ReviewDto updatedReview = reviewService.updateReview(id, reviewDto);
-            return ResponseEntity.ok(updatedReview);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+        ReviewDto updatedReview = reviewService.updateReview(id, reviewDto);
+        return ResponseEntity.ok(updatedReview);
     }
     
     @Operation(summary = "Usuń recenzję", description = "Usuwa recenzję (tylko właściciel recenzji)")
@@ -67,12 +57,8 @@ public class ReviewController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteReview(
             @Parameter(description = "ID recenzji", required = true) @PathVariable Long id) {
-        try {
-            reviewService.deleteReview(id);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+        reviewService.deleteReview(id);
+        return ResponseEntity.noContent().build();
     }
     
     @Operation(summary = "Pobierz recenzję po ID", description = "Zwraca szczegóły recenzji o podanym ID")

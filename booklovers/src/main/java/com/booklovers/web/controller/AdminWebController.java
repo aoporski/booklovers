@@ -4,6 +4,7 @@ import com.booklovers.dto.AuthorDto;
 import com.booklovers.dto.BookDto;
 import com.booklovers.dto.ReviewDto;
 import com.booklovers.dto.UserDto;
+import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.service.author.AuthorService;
 import com.booklovers.service.book.BookService;
 import com.booklovers.service.review.ReviewService;
@@ -48,7 +49,7 @@ public class AdminWebController {
     @GetMapping("/books/{id}/edit")
     public String editBookForm(@PathVariable Long id, Model model) {
         BookDto book = bookService.getBookById(id)
-                .orElseThrow(() -> new RuntimeException("Book not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Book", id));
         List<AuthorDto> authors = authorService.getAllAuthors();
         model.addAttribute("bookDto", book);
         model.addAttribute("authors", authors);
@@ -63,67 +64,38 @@ public class AdminWebController {
             model.addAttribute("authors", authors);
             return "edit-book";
         }
-        try {
-            bookService.updateBook(id, bookDto);
-            redirectAttributes.addFlashAttribute("success", "Książka została zaktualizowana!");
-            return "redirect:/admin";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Błąd podczas aktualizacji książki: " + e.getMessage());
-            return "redirect:/admin/books/" + id + "/edit";
-        }
+        bookService.updateBook(id, bookDto);
+        redirectAttributes.addFlashAttribute("success", "Książka została zaktualizowana!");
+        return "redirect:/admin";
     }
     
     @PostMapping("/books/{id}/delete")
     public String deleteBook(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            bookService.deleteBook(id);
-            redirectAttributes.addFlashAttribute("success", "Książka została usunięta!");
-            return "redirect:/admin";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Błąd podczas usuwania książki: " + e.getMessage());
-            return "redirect:/admin";
-        }
+        bookService.deleteBook(id);
+        redirectAttributes.addFlashAttribute("success", "Książka została usunięta!");
+        return "redirect:/admin";
     }
-    
-    // ========== USER MANAGEMENT ==========
     
     @PostMapping("/users/{id}/block")
     public String blockUser(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            userService.blockUser(id);
-            redirectAttributes.addFlashAttribute("success", "Użytkownik został zablokowany!");
-            return "redirect:/admin";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Błąd podczas blokowania użytkownika: " + e.getMessage());
-            return "redirect:/admin";
-        }
+        userService.blockUser(id);
+        redirectAttributes.addFlashAttribute("success", "Użytkownik został zablokowany!");
+        return "redirect:/admin";
     }
     
     @PostMapping("/users/{id}/unblock")
     public String unblockUser(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            userService.unblockUser(id);
-            redirectAttributes.addFlashAttribute("success", "Użytkownik został odblokowany!");
-            return "redirect:/admin";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Błąd podczas odblokowywania użytkownika: " + e.getMessage());
-            return "redirect:/admin";
-        }
+        userService.unblockUser(id);
+        redirectAttributes.addFlashAttribute("success", "Użytkownik został odblokowany!");
+        return "redirect:/admin";
     }
     
     @PostMapping("/users/{id}/delete")
     public String deleteUser(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            userService.deleteUser(id);
-            redirectAttributes.addFlashAttribute("success", "Użytkownik został usunięty!");
-            return "redirect:/admin";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Błąd podczas usuwania użytkownika: " + e.getMessage());
-            return "redirect:/admin";
-        }
+        userService.deleteUser(id);
+        redirectAttributes.addFlashAttribute("success", "Użytkownik został usunięty!");
+        return "redirect:/admin";
     }
-    
-    // ========== AUTHOR MANAGEMENT ==========
     
     @GetMapping("/authors/add")
     public String addAuthorForm(Model model) {
@@ -137,20 +109,15 @@ public class AdminWebController {
         if (result.hasErrors()) {
             return "add-author";
         }
-        try {
-            authorService.createAuthor(authorDto);
-            redirectAttributes.addFlashAttribute("success", "Autor został dodany!");
-            return "redirect:/admin";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Błąd podczas dodawania autora: " + e.getMessage());
-            return "redirect:/admin/authors/add";
-        }
+        authorService.createAuthor(authorDto);
+        redirectAttributes.addFlashAttribute("success", "Autor został dodany!");
+        return "redirect:/admin";
     }
     
     @GetMapping("/authors/{id}/edit")
     public String editAuthorForm(@PathVariable Long id, Model model) {
         AuthorDto author = authorService.getAuthorById(id)
-                .orElseThrow(() -> new RuntimeException("Author not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Author", id));
         model.addAttribute("authorDto", author);
         return "edit-author";
     }
@@ -161,39 +128,22 @@ public class AdminWebController {
         if (result.hasErrors()) {
             return "edit-author";
         }
-        try {
-            authorService.updateAuthor(id, authorDto);
-            redirectAttributes.addFlashAttribute("success", "Autor został zaktualizowany!");
-            return "redirect:/admin";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Błąd podczas aktualizacji autora: " + e.getMessage());
-            return "redirect:/admin/authors/" + id + "/edit";
-        }
+        authorService.updateAuthor(id, authorDto);
+        redirectAttributes.addFlashAttribute("success", "Autor został zaktualizowany!");
+        return "redirect:/admin";
     }
     
     @PostMapping("/authors/{id}/delete")
     public String deleteAuthor(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            authorService.deleteAuthor(id);
-            redirectAttributes.addFlashAttribute("success", "Autor został usunięty!");
-            return "redirect:/admin";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Błąd podczas usuwania autora: " + e.getMessage());
-            return "redirect:/admin";
-        }
+        authorService.deleteAuthor(id);
+        redirectAttributes.addFlashAttribute("success", "Autor został usunięty!");
+        return "redirect:/admin";
     }
-    
-    // ========== REVIEW MODERATION ==========
     
     @PostMapping("/reviews/{id}/delete")
     public String deleteReview(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            reviewService.deleteReviewAsAdmin(id); // Użyj metody dla admina (bez sprawdzania właściciela)
-            redirectAttributes.addFlashAttribute("success", "Recenzja została usunięta!");
-            return "redirect:/admin";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Błąd podczas usuwania recenzji: " + e.getMessage());
-            return "redirect:/admin";
-        }
+        reviewService.deleteReviewAsAdmin(id);
+        redirectAttributes.addFlashAttribute("success", "Recenzja została usunięta!");
+        return "redirect:/admin";
     }
 }

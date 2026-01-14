@@ -34,13 +34,9 @@ public class StatsController {
     @ApiResponse(responseCode = "200", description = "Statystyki użytkownika")
     @GetMapping("/user")
     public ResponseEntity<UserStatsDto> getCurrentUserStats() {
-        try {
             com.booklovers.dto.UserDto currentUser = userService.getCurrentUser();
             UserStatsDto stats = statsService.getUserStats(currentUser.getId());
             return ResponseEntity.ok(stats);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
     }
     
     @Operation(summary = "Pobierz statystyki użytkownika", description = "Zwraca statystyki czytelnictwa dla określonego użytkownika")
@@ -51,11 +47,7 @@ public class StatsController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<UserStatsDto> getUserStats(
             @Parameter(description = "ID użytkownika", required = true) @PathVariable Long userId) {
-        try {
             UserStatsDto stats = statsService.getUserStats(userId);
             return ResponseEntity.ok(stats);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
     }
 }

@@ -48,12 +48,8 @@ public class AdminController {
     })
     @PostMapping("/books")
     public ResponseEntity<BookDto> createBook(@Valid @RequestBody BookDto bookDto) {
-        try {
-            BookDto createdBook = bookService.createBook(bookDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdBook);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+        BookDto createdBook = bookService.createBook(bookDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdBook);
     }
     
     @Operation(summary = "Aktualizuj książkę (Admin)", description = "Aktualizuje dane książki (dostępne tylko dla administratorów)")
@@ -65,12 +61,8 @@ public class AdminController {
     public ResponseEntity<BookDto> updateBook(
             @Parameter(description = "ID książki", required = true) @PathVariable Long id,
             @Valid @RequestBody BookDto bookDto) {
-        try {
-            BookDto updatedBook = bookService.updateBook(id, bookDto);
-            return ResponseEntity.ok(updatedBook);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        BookDto updatedBook = bookService.updateBook(id, bookDto);
+        return ResponseEntity.ok(updatedBook);
     }
     
     @Operation(summary = "Usuń książkę (Admin)", description = "Usuwa książkę z systemu (dostępne tylko dla administratorów)")
@@ -81,12 +73,8 @@ public class AdminController {
     @DeleteMapping("/books/{id}")
     public ResponseEntity<Void> deleteBook(
             @Parameter(description = "ID książki", required = true) @PathVariable Long id) {
-        try {
-            bookService.deleteBook(id);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        bookService.deleteBook(id);
+        return ResponseEntity.noContent().build();
     }
     
     @Operation(summary = "Pobierz wszystkich użytkowników (Admin)", description = "Zwraca listę wszystkich użytkowników (dostępne tylko dla administratorów)")
@@ -105,12 +93,8 @@ public class AdminController {
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Void> deleteUser(
             @Parameter(description = "ID użytkownika", required = true) @PathVariable Long id) {
-        try {
-            userService.deleteUser(id);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
     }
     
     @Operation(summary = "Zablokuj użytkownika (Admin)", description = "Blokuje konto użytkownika (dostępne tylko dla administratorów)")
@@ -121,12 +105,8 @@ public class AdminController {
     @PutMapping("/users/{id}/block")
     public ResponseEntity<UserDto> blockUser(
             @Parameter(description = "ID użytkownika", required = true) @PathVariable Long id) {
-        try {
-            UserDto user = userService.blockUser(id);
-            return ResponseEntity.ok(user);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        UserDto user = userService.blockUser(id);
+        return ResponseEntity.ok(user);
     }
     
     @Operation(summary = "Odblokuj użytkownika (Admin)", description = "Odblokowuje konto użytkownika (dostępne tylko dla administratorów)")
@@ -137,12 +117,8 @@ public class AdminController {
     @PutMapping("/users/{id}/unblock")
     public ResponseEntity<UserDto> unblockUser(
             @Parameter(description = "ID użytkownika", required = true) @PathVariable Long id) {
-        try {
-            UserDto user = userService.unblockUser(id);
-            return ResponseEntity.ok(user);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        UserDto user = userService.unblockUser(id);
+        return ResponseEntity.ok(user);
     }
     
     // ========== AUTHOR MANAGEMENT ==========
@@ -175,12 +151,8 @@ public class AdminController {
     })
     @PostMapping("/authors")
     public ResponseEntity<AuthorDto> createAuthor(@Valid @RequestBody AuthorDto authorDto) {
-        try {
-            AuthorDto createdAuthor = authorService.createAuthor(authorDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdAuthor);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
+        AuthorDto createdAuthor = authorService.createAuthor(authorDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdAuthor);
     }
     
     @Operation(summary = "Aktualizuj autora (Admin)", description = "Aktualizuje dane autora (dostępne tylko dla administratorów)")
@@ -192,12 +164,8 @@ public class AdminController {
     public ResponseEntity<AuthorDto> updateAuthor(
             @Parameter(description = "ID autora", required = true) @PathVariable Long id,
             @Valid @RequestBody AuthorDto authorDto) {
-        try {
-            AuthorDto updatedAuthor = authorService.updateAuthor(id, authorDto);
-            return ResponseEntity.ok(updatedAuthor);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        AuthorDto updatedAuthor = authorService.updateAuthor(id, authorDto);
+        return ResponseEntity.ok(updatedAuthor);
     }
     
     @Operation(summary = "Usuń autora (Admin)", description = "Usuwa autora z systemu (dostępne tylko dla administratorów)")
@@ -208,12 +176,8 @@ public class AdminController {
     @DeleteMapping("/authors/{id}")
     public ResponseEntity<Void> deleteAuthor(
             @Parameter(description = "ID autora", required = true) @PathVariable Long id) {
-        try {
-            authorService.deleteAuthor(id);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        authorService.deleteAuthor(id);
+        return ResponseEntity.noContent().build();
     }
     
     // ========== REVIEW MODERATION ==========
@@ -226,11 +190,7 @@ public class AdminController {
     @DeleteMapping("/reviews/{id}")
     public ResponseEntity<Void> deleteReviewAsAdmin(
             @Parameter(description = "ID recenzji", required = true) @PathVariable Long id) {
-        try {
-            reviewService.deleteReviewAsAdmin(id); // Użyj metody dla admina
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        reviewService.deleteReviewAsAdmin(id);
+        return ResponseEntity.noContent().build();
     }
 }

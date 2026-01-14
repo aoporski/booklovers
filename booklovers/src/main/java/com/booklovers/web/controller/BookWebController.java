@@ -5,6 +5,7 @@ import com.booklovers.dto.BookDto;
 import com.booklovers.dto.RatingDto;
 import com.booklovers.dto.ReviewDto;
 import com.booklovers.dto.UserDto;
+import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.service.author.AuthorService;
 import com.booklovers.service.book.BookService;
 import com.booklovers.service.rating.RatingService;
@@ -12,6 +13,7 @@ import com.booklovers.service.review.ReviewService;
 import com.booklovers.service.user.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class BookWebController {
@@ -48,12 +51,11 @@ public class BookWebController {
     @GetMapping("/books/{id}")
     public String bookDetails(@PathVariable Long id, Model model) {
         BookDto book = bookService.getBookById(id)
-                .orElseThrow(() -> new RuntimeException("Book not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Book", id));
         
         List<ReviewDto> reviews = reviewService.getReviewsByBookId(id);
         List<RatingDto> ratings = ratingService.getRatingsByBookId(id);
         
-        // Mapowanie ocen do recenzji (po userId)
         Map<Long, Integer> ratingMap = ratings.stream()
                 .collect(Collectors.toMap(
                         RatingDto::getUserId,
@@ -61,7 +63,6 @@ public class BookWebController {
                         (existing, replacement) -> existing
                 ));
         
-        // Dodaj oceny do recenzji
         reviews.forEach(review -> {
             if (review.getUserId() != null && ratingMap.containsKey(review.getUserId())) {
                 review.setRatingValue(ratingMap.get(review.getUserId()));
@@ -76,14 +77,10 @@ public class BookWebController {
     
     @GetMapping("/my-books")
     public String myBooksPage(Model model) {
-        try {
-            UserDto currentUser = userService.getCurrentUser();
-            List<BookDto> books = bookService.getUserBooks(currentUser.getId());
-            model.addAttribute("books", books);
-            return "my-books";
-        } catch (Exception e) {
-            return "redirect:/login";
-        }
+        UserDto currentUser = userService.getCurrentUser();
+        List<BookDto> books = bookService.getUserBooks(currentUser.getId());
+        model.addAttribute("books", books);
+        return "my-books";
     }
     
     @GetMapping("/books/add")
@@ -101,26 +98,16 @@ public class BookWebController {
             model.addAttribute("authors", authors);
             return "add-book";
         }
-        try {
-            bookService.createBook(bookDto);
-            redirectAttributes.addFlashAttribute("success", "Książka została dodana pomyślnie!");
-            return "redirect:/books";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Błąd podczas dodawania książki: " + e.getMessage());
-            return "redirect:/books/add";
-        }
+        bookService.createBook(bookDto);
+        redirectAttributes.addFlashAttribute("success", "Książka została dodana pomyślnie!");
+        return "redirect:/books";
     }
     
     @PostMapping("/books/{id}/add-to-library")
     public String addBookToLibrary(@PathVariable Long id, @RequestParam(defaultValue = "Moja biblioteczka") String shelfName, RedirectAttributes redirectAttributes) {
-        try {
-            bookService.addBookToUserLibrary(id, shelfName);
-            redirectAttributes.addFlashAttribute("success", "Książka została dodana do biblioteczki!");
-            return "redirect:/books/" + id;
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Błąd podczas dodawania książki do biblioteczki: " + e.getMessage());
-            return "redirect:/books/" + id;
-        }
+        bookService.addBookToUserLibrary(id, shelfName);
+        redirectAttributes.addFlashAttribute("success", "Książka została dodana do biblioteczki!");
+        return "redirect:/books/" + id;
     }
     
     @PostMapping("/books/{id}/reviews")
@@ -129,27 +116,17 @@ public class BookWebController {
             redirectAttributes.addFlashAttribute("error", "Błąd walidacji recenzji");
             return "redirect:/books/" + id;
         }
-        try {
-            reviewService.createReview(id, reviewDto);
-            
-            // Utwórz ocenę w osobnej transakcji, jeśli została podana
-            if (reviewDto.getRatingValue() != null && reviewDto.getRatingValue() >= 1 && reviewDto.getRatingValue() <= 5) {
-                try {
-                    reviewService.createRatingAfterReview(id, reviewDto.getRatingValue());
-                } catch (Exception e) {
-                    // Jeśli nie udało się utworzyć oceny, nie przerywaj - recenzja już jest zapisana
-                    System.err.println("Warning: Could not create rating for review: " + e.getMessage());
-                }
+        reviewService.createReview(id, reviewDto);
+        
+        if (reviewDto.getRatingValue() != null && reviewDto.getRatingValue() >= 1 && reviewDto.getRatingValue() <= 5) {
+            try {
+                reviewService.createRatingAfterReview(id, reviewDto.getRatingValue());
+            } catch (Exception e) {
+                log.warn("Could not create rating for review: {}", e.getMessage());
             }
-            
-            redirectAttributes.addFlashAttribute("success", "Recenzja została dodana!");
-            return "redirect:/books/" + id;
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("error", "Masz już recenzję dla tej książki");
-            return "redirect:/books/" + id;
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Błąd podczas dodawania recenzji: " + e.getMessage());
-            return "redirect:/books/" + id;
         }
+        
+        redirectAttributes.addFlashAttribute("success", "Recenzja została dodana!");
+        return "redirect:/books/" + id;
     }
 }

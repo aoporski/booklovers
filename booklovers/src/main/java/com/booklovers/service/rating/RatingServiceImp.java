@@ -4,6 +4,7 @@ import com.booklovers.dto.RatingDto;
 import com.booklovers.entity.Book;
 import com.booklovers.entity.Rating;
 import com.booklovers.entity.User;
+import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.repository.BookRepository;
 import com.booklovers.repository.RatingRepository;
 import com.booklovers.repository.UserRepository;
@@ -31,10 +32,10 @@ public class RatingServiceImp implements RatingService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", username));
         
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Book", bookId));
         
         Optional<Rating> existingRating = ratingRepository.findByUserIdAndBookId(user.getId(), bookId);
         
@@ -60,10 +61,10 @@ public class RatingServiceImp implements RatingService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", username));
         
         Rating rating = ratingRepository.findByUserIdAndBookId(user.getId(), bookId)
-                .orElseThrow(() -> new RuntimeException("Rating not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Rating", "not found for book: " + bookId));
         
         ratingRepository.delete(rating);
     }
@@ -73,7 +74,7 @@ public class RatingServiceImp implements RatingService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", username));
         
         return ratingRepository.findByUserIdAndBookId(user.getId(), bookId)
                 .map(this::toDto);

@@ -5,6 +5,9 @@ import com.booklovers.dto.ReviewDto;
 import com.booklovers.entity.Book;
 import com.booklovers.entity.Review;
 import com.booklovers.entity.User;
+import com.booklovers.exception.ConflictException;
+import com.booklovers.exception.ForbiddenException;
+import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.repository.BookRepository;
 import com.booklovers.repository.ReviewRepository;
 import com.booklovers.repository.UserRepository;
@@ -36,14 +39,14 @@ public class ReviewServiceImp implements ReviewService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", username));
         
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Book", bookId));
         
         Optional<Review> existingReview = reviewRepository.findByUserIdAndBookId(user.getId(), bookId);
         if (existingReview.isPresent()) {
-            throw new IllegalArgumentException("User already has a review for this book");
+            throw new ConflictException("User already has a review for this book");
         }
         
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
@@ -57,15 +60,11 @@ public class ReviewServiceImp implements ReviewService {
                 .build();
         
         Review savedReview = reviewRepository.save(review);
-        reviewRepository.flush(); // Wymuś zapis do bazy przed kontynuacją
+        reviewRepository.flush();
         
         return reviewMapper.toDto(savedReview);
     }
     
-    /**
-     * Tworzy ocenę w osobnej transakcji, aby uniknąć konfliktów z główną transakcją recenzji.
-     * Wywoływane po zapisaniu recenzji.
-     */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createRatingAfterReview(Long bookId, Integer ratingValue) {
@@ -83,13 +82,13 @@ public class ReviewServiceImp implements ReviewService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", username));
         
         Review review = reviewRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Review", id));
         
         if (!review.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("You can only update your own reviews");
+            throw new ForbiddenException("You can only update your own reviews");
         }
         
         if (reviewDto.getContent() != null) {
@@ -106,13 +105,13 @@ public class ReviewServiceImp implements ReviewService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", username));
         
         Review review = reviewRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Review", id));
         
         if (!review.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("You can only delete your own reviews");
+            throw new ForbiddenException("You can only delete your own reviews");
         }
         
         reviewRepository.deleteById(id);
@@ -122,7 +121,7 @@ public class ReviewServiceImp implements ReviewService {
     @Transactional
     public void deleteReviewAsAdmin(Long id) {
         Review review = reviewRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Review", id));
         
         reviewRepository.deleteById(id);
     }

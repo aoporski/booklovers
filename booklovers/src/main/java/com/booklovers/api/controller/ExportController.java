@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,13 +26,9 @@ public class ExportController {
     @ApiResponse(responseCode = "200", description = "Dane użytkownika")
     @GetMapping("/user")
     public ResponseEntity<UserDataExportDto> exportCurrentUserData() {
-        try {
-            com.booklovers.dto.UserDto currentUser = userService.getCurrentUser();
-            UserDataExportDto data = exportService.exportUserData(currentUser.getId());
-            return ResponseEntity.ok(data);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        com.booklovers.dto.UserDto currentUser = userService.getCurrentUser();
+        UserDataExportDto data = exportService.exportUserData(currentUser.getId());
+        return ResponseEntity.ok(data);
     }
     
     @Operation(summary = "Eksportuj dane użytkownika jako JSON", description = "Eksportuje dane użytkownika w formacie JSON do pobrania")
@@ -43,19 +38,15 @@ public class ExportController {
     })
     @GetMapping(value = "/user/json", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> exportCurrentUserDataAsJson() {
-        try {
-            com.booklovers.dto.UserDto currentUser = userService.getCurrentUser();
-            String json = exportService.exportUserDataAsJson(currentUser.getId());
-            
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setContentDispositionFormData("attachment", "user-data.json");
-            
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .body(json);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        com.booklovers.dto.UserDto currentUser = userService.getCurrentUser();
+        String json = exportService.exportUserDataAsJson(currentUser.getId());
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setContentDispositionFormData("attachment", "user-data.json");
+        
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(json);
     }
 }

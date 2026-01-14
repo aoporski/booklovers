@@ -6,6 +6,8 @@ import com.booklovers.entity.Author;
 import com.booklovers.entity.Book;
 import com.booklovers.entity.User;
 import com.booklovers.entity.UserBook;
+import com.booklovers.exception.ConflictException;
+import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.repository.AuthorRepository;
 import com.booklovers.repository.BookRepository;
 import com.booklovers.repository.RatingRepository;
@@ -65,12 +67,9 @@ public class BookServiceImp implements BookService {
         // Jeśli podano authorId, przypisz autora do książki
         if (bookDto.getAuthorId() != null) {
             Author author = authorRepository.findById(bookDto.getAuthorId())
-                    .orElseThrow(() -> new RuntimeException("Author not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Author", bookDto.getAuthorId()));
             book.setAuthorEntity(author);
-            // Ustaw również pole author jako pełne imię autora dla kompatybilności wstecznej
-            if (book.getAuthor() == null || book.getAuthor().isEmpty()) {
-                book.setAuthor(author.getFullName());
-            }
+            book.setAuthor(author.getFullName());
         }
         
         Book savedBook = bookRepository.save(book);
@@ -81,7 +80,7 @@ public class BookServiceImp implements BookService {
     @Transactional
     public BookDto updateBook(Long id, BookDto bookDto) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Book not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Book", id));
         
         if (bookDto.getTitle() != null) {
             book.setTitle(bookDto.getTitle());
@@ -90,7 +89,7 @@ public class BookServiceImp implements BookService {
         // Jeśli podano authorId, przypisz autora do książki
         if (bookDto.getAuthorId() != null) {
             Author author = authorRepository.findById(bookDto.getAuthorId())
-                    .orElseThrow(() -> new RuntimeException("Author not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Author", bookDto.getAuthorId()));
             book.setAuthorEntity(author);
             // Ustaw również pole author jako pełne imię autora dla kompatybilności wstecznej
             book.setAuthor(author.getFullName());
@@ -179,10 +178,10 @@ public class BookServiceImp implements BookService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", username));
         
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Book", bookId));
         
         if (shelfName == null || shelfName.trim().isEmpty()) {
             shelfName = "Moja biblioteczka";
@@ -193,7 +192,7 @@ public class BookServiceImp implements BookService {
                 user.getId(), bookId, shelfName);
         
         if (existing.isPresent()) {
-            throw new IllegalArgumentException("Book already exists in this shelf");
+            throw new ConflictException("Book already exists in this shelf");
         }
         
         UserBook userBook = UserBook.builder()
@@ -212,15 +211,15 @@ public class BookServiceImp implements BookService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", username));
         
-        if (shelfName == null || shelfName.trim().isEmpty()) {
-            shelfName = "Moja biblioteczka";
-        }
+        final String finalShelfName = (shelfName == null || shelfName.trim().isEmpty()) 
+                ? "Moja biblioteczka" 
+                : shelfName;
         
         UserBook userBook = userBookRepository.findByUserIdAndBookIdAndShelfName(
-                user.getId(), bookId, shelfName)
-                .orElseThrow(() -> new RuntimeException("Book not found in this shelf"));
+                user.getId(), bookId, finalShelfName)
+                .orElseThrow(() -> new ResourceNotFoundException("Book", "not found in shelf: " + finalShelfName));
         
         userBookRepository.delete(userBook);
     }
@@ -231,28 +230,27 @@ public class BookServiceImp implements BookService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", username));
         
-        if (fromShelf == null || fromShelf.trim().isEmpty()) {
-            fromShelf = "Moja biblioteczka";
-        }
-        if (toShelf == null || toShelf.trim().isEmpty()) {
-            toShelf = "Moja biblioteczka";
-        }
+        final String finalFromShelf = (fromShelf == null || fromShelf.trim().isEmpty()) 
+                ? "Moja biblioteczka" 
+                : fromShelf;
+        final String finalToShelf = (toShelf == null || toShelf.trim().isEmpty()) 
+                ? "Moja biblioteczka" 
+                : toShelf;
         
         UserBook userBook = userBookRepository.findByUserIdAndBookIdAndShelfName(
-                user.getId(), bookId, fromShelf)
-                .orElseThrow(() -> new RuntimeException("Book not found in source shelf"));
+                user.getId(), bookId, finalFromShelf)
+                .orElseThrow(() -> new ResourceNotFoundException("Book", "not found in source shelf: " + finalFromShelf));
         
-        // Sprawdź czy już nie istnieje w docelowej półce
         Optional<UserBook> existing = userBookRepository.findByUserIdAndBookIdAndShelfName(
-                user.getId(), bookId, toShelf);
+                user.getId(), bookId, finalToShelf);
         
         if (existing.isPresent()) {
-            throw new IllegalArgumentException("Book already exists in target shelf");
+            throw new ConflictException("Book already exists in target shelf");
         }
         
-        userBook.setShelfName(toShelf);
+        userBook.setShelfName(finalToShelf);
         userBookRepository.save(userBook);
     }
     

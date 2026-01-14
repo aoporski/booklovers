@@ -3,6 +3,7 @@ package com.booklovers.service.stats;
 import com.booklovers.dto.StatsDto;
 import com.booklovers.dto.UserStatsDto;
 import com.booklovers.entity.User;
+import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -60,7 +61,7 @@ public class StatsServiceImp implements StatsService {
     @Override
     public UserStatsDto getUserStats(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
         
         int booksRead = user.getUserBooks() != null ? 
             (int) user.getUserBooks().stream().map(ub -> ub.getBook().getId()).distinct().count() : 0;

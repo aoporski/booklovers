@@ -3,6 +3,8 @@ package com.booklovers.service.user;
 import com.booklovers.dto.RegisterRequest;
 import com.booklovers.dto.UserDto;
 import com.booklovers.entity.User;
+import com.booklovers.exception.ConflictException;
+import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -27,10 +29,10 @@ public class UserServiceImp implements UserService {
     @Transactional
     public UserDto register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("Username already exists");
+            throw new ConflictException("Username already exists");
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
+            throw new ConflictException("Email already exists");
         }
         
         User user = User.builder()
@@ -61,7 +63,7 @@ public class UserServiceImp implements UserService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", username));
         return userMapper.toDto(user);
     }
     
@@ -71,7 +73,7 @@ public class UserServiceImp implements UserService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", username));
         
         if (userDto.getFirstName() != null) {
             user.setFirstName(userDto.getFirstName());
@@ -84,7 +86,7 @@ public class UserServiceImp implements UserService {
         }
         if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail())) {
             if (userRepository.existsByEmail(userDto.getEmail())) {
-                throw new IllegalArgumentException("Email already exists");
+                throw new ConflictException("Email already exists");
             }
             user.setEmail(userDto.getEmail());
         }
@@ -113,7 +115,7 @@ public class UserServiceImp implements UserService {
     @Transactional
     public UserDto blockUser(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
         user.setIsBlocked(true);
         User saved = userRepository.save(user);
         return userMapper.toDto(saved);
@@ -123,7 +125,7 @@ public class UserServiceImp implements UserService {
     @Transactional
     public UserDto unblockUser(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
         user.setIsBlocked(false);
         User saved = userRepository.save(user);
         return userMapper.toDto(saved);

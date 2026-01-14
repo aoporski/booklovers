@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,12 +29,9 @@ public class UserController {
     })
     @GetMapping("/me")
     public ResponseEntity<UserDto> getCurrentUser() {
-        try {
-            UserDto user = userService.getCurrentUser();
-            return ResponseEntity.ok(user);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
+        UserDto user = userService.getCurrentUser();
+        return ResponseEntity.ok(user);
+  
     }
     
     @Operation(summary = "Aktualizuj profil użytkownika", description = "Aktualizuje dane profilu zalogowanego użytkownika")
@@ -45,14 +41,8 @@ public class UserController {
     })
     @PutMapping("/me")
     public ResponseEntity<UserDto> updateCurrentUser(@Valid @RequestBody UserDto userDto) {
-        try {
             UserDto updatedUser = userService.updateUser(userDto);
             return ResponseEntity.ok(updatedUser);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
     }
     
     @Operation(summary = "Pobierz wszystkich użytkowników", description = "Zwraca listę wszystkich użytkowników w systemie")
@@ -71,11 +61,7 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(
             @Parameter(description = "ID użytkownika", required = true) @PathVariable Long id) {
-        try {
             userService.deleteUser(id);
             return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
     }
 }
