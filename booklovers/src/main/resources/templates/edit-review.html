@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edytuj recenzję - Book Lovers</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">📚 Book Lovers</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/books">Książki</a>
+                <a class="nav-link" sec:authorize="isAuthenticated()" href="/my-books">Moja biblioteczka</a>
+                <a class="nav-link" sec:authorize="isAuthenticated()" href="/profile">Profil</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mt-4">
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+        
+        <h2>Edytuj recenzję</h2>
+        <p class="text-muted">Książka: <strong th:text="${book.title}"></strong></p>
+        
+        <form th:action="@{/books/{bookId}/reviews/{reviewId}/edit(bookId=${book.id}, reviewId=${reviewDto.id})}" 
+              th:object="${reviewDto}" method="post">
+            <div class="mb-3">
+                <label for="ratingValue" class="form-label">Ocena (1-5 gwiazdek) *</label>
+                <select class="form-select" id="ratingValue" th:field="*{ratingValue}" required>
+                    <option value="">Wybierz ocenę</option>
+                    <option value="1">⭐ (1)</option>
+                    <option value="2">⭐⭐ (2)</option>
+                    <option value="3">⭐⭐⭐ (3)</option>
+                    <option value="4">⭐⭐⭐⭐ (4)</option>
+                    <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+                </select>
+                <div th:if="${#fields.hasErrors('ratingValue')}" th:errors="*{ratingValue}" class="text-danger"></div>
+            </div>
+            <div class="mb-3">
+                <label for="content" class="form-label">Recenzja *</label>
+                <textarea class="form-control" id="content" th:field="*{content}" rows="5" placeholder="Napisz recenzję..." required></textarea>
+                <div th:if="${#fields.hasErrors('content')}" th:errors="*{content}" class="text-danger"></div>
+            </div>
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">Zaktualizuj recenzję</button>
+                <a th:href="@{/books/{id}(id=${book.id})}" class="btn btn-secondary">Anuluj</a>
+            </div>
+        </form>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

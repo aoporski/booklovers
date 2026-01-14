@@ -101,6 +101,20 @@ public class ReviewServiceImp implements ReviewService {
     
     @Override
     @Transactional
+    public ReviewDto updateReviewAsAdmin(Long id, ReviewDto reviewDto) {
+        Review review = reviewRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Review", id));
+        
+        if (reviewDto.getContent() != null) {
+            review.setContent(reviewDto.getContent());
+        }
+        
+        Review updatedReview = reviewRepository.save(review);
+        return reviewMapper.toDto(updatedReview);
+    }
+    
+    @Override
+    @Transactional
     public void deleteReview(Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();

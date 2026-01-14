@@ -17,6 +17,6 @@ public class HomeController {
             !authentication.getName().equals("anonymousUser")) {
             return "redirect:/books";
         }
-        return "redirect:/login";
+        return "redirect:/books";
     }
 }

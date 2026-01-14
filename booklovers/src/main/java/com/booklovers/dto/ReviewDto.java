@@ -24,7 +24,7 @@ public class ReviewDto {
     
     @Min(value = 1, message = "Rating must be between 1 and 5")
     @Max(value = 5, message = "Rating must be between 1 and 5")
-    private Integer ratingValue; // Opcjonalna ocena (1-5 gwiazdek)
+    private Integer ratingValue; // Wymagana ocena (1-5 gwiazdek)
     
     private Long userId;
     private String username;

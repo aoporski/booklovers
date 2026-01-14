@@ -25,10 +25,34 @@ public class WebExceptionHandler {
     }
     
     @ExceptionHandler(ConflictException.class)
-    public String handleConflictException(ConflictException ex, RedirectAttributes redirectAttributes) {
+    public String handleConflictException(ConflictException ex, RedirectAttributes redirectAttributes, org.springframework.web.context.request.WebRequest request) {
         log.error("Conflict: {}", ex.getMessage());
+        String requestUri = request.getDescription(false).replace("uri=", "");
+        // Jeśli błąd wystąpił na stronie szczegółów książki, przekieruj tam
+        if (requestUri.contains("/books/") && requestUri.contains("/reviews")) {
+            String bookId = extractBookIdFromUri(requestUri);
+            if (bookId != null) {
+                redirectAttributes.addFlashAttribute("error", "Już dodałeś recenzję do tej książki. Możesz edytować istniejącą recenzję.");
+                return "redirect:/books/" + bookId;
+            }
+        }
         redirectAttributes.addFlashAttribute("error", ex.getMessage());
         return "redirect:/books";
+    }
+    
+    private String extractBookIdFromUri(String uri) {
+        try {
+            // Format: /books/{id}/reviews
+            String[] parts = uri.split("/");
+            for (int i = 0; i < parts.length; i++) {
+                if (parts[i].equals("books") && i + 1 < parts.length) {
+                    return parts[i + 1];
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not extract book ID from URI: {}", uri);
+        }
+        return null;
     }
     
     @ExceptionHandler(ForbiddenException.class)

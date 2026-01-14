@@ -15,7 +15,10 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     List<Book> findByTitleContainingIgnoreCase(String title);
     List<Book> findByAuthorContainingIgnoreCase(String author);
     
-    @Query("SELECT b FROM Book b WHERE b.title LIKE %:query% OR b.author LIKE %:query%")
+    @Query("SELECT b FROM Book b WHERE " +
+           "LOWER(b.title) LIKE LOWER(:query) OR " +
+           "LOWER(b.author) LIKE LOWER(:query) OR " +
+           "LOWER(COALESCE(b.isbn, '')) LIKE LOWER(:query)")
     List<Book> searchBooks(@Param("query") String query);
     
     @Query("SELECT COUNT(b) FROM Book b WHERE b.authorEntity.id = :authorId")

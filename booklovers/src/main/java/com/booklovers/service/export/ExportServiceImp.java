@@ -44,7 +44,6 @@ public class ExportServiceImp implements ExportService {
         List<RatingDto> ratings = ratingService.getRatingsByUserId(userId);
         List<String> shelves = bookService.getUserShelves(userId);
         
-        // Pobierz UserBookDto dla wszystkich książek użytkownika
         List<UserBookDto> userBooks = userBookRepository.findByUserId(userId).stream()
                 .map(ub -> UserBookDto.builder()
                         .id(ub.getId())

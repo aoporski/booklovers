@@ -135,8 +135,17 @@ public class BookServiceImp implements BookService {
     
     @Override
     public List<BookDto> searchBooks(String query) {
-        return bookRepository.searchBooks(query).stream()
-                .map(bookMapper::toDto)
+        if (query == null || query.trim().isEmpty()) {
+            return getAllBooks();
+        }
+        String searchQuery = "%" + query.trim() + "%";
+        return bookRepository.searchBooks(searchQuery).stream()
+                .map(book -> {
+                    BookDto dto = bookMapper.toDto(book);
+                    Double avgRating = ratingRepository.getAverageRatingByBookId(book.getId());
+                    dto.setAverageRating(avgRating != null ? avgRating : 0.0);
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
     
@@ -187,7 +196,6 @@ public class BookServiceImp implements BookService {
             shelfName = "Moja biblioteczka";
         }
         
-        // Sprawdź czy książka już jest w tej kategorii
         Optional<UserBook> existing = userBookRepository.findByUserIdAndBookIdAndShelfName(
                 user.getId(), bookId, shelfName);
         

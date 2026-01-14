@@ -33,31 +33,68 @@
         <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
         
         <form th:action="@{/books}" method="get" class="mb-4">
-            <div class="input-group">
-                <input type="text" class="form-control" name="search" th:value="${search}" placeholder="Szukaj książek...">
-                <button type="submit" class="btn btn-primary">Szukaj</button>
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Wyszukiwarka książek</h5>
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-lg" name="search" th:value="${search}" 
+                               placeholder="Szukaj po tytule, autorze lub ISBN...">
+                        <button type="submit" class="btn btn-primary btn-lg">🔍 Szukaj</button>
+                    </div>
+                    <small class="text-muted mt-2 d-block">Możesz wyszukiwać książki po tytule, nazwisku autora lub numerze ISBN</small>
+                </div>
             </div>
         </form>
         
+        <div th:if="${search != null && !search.isEmpty()}" class="mb-3">
+            <h4>Wyniki wyszukiwania dla: "<span th:text="${search}"></span>"</h4>
+            <p class="text-muted">Znaleziono <span th:text="${#lists.size(books)}">0</span> książek</p>
+        </div>
+        
         <div class="row">
             <div th:each="book : ${books}" class="col-md-4 mb-4">
-                <div class="card">
-                    <div class="card-body">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
                         <h5 class="card-title" th:text="${book.title}">Tytuł</h5>
                         <p class="card-text">
                             <strong>Autor:</strong> <span th:text="${book.author}">Autor</span>
                         </p>
-                        <p class="card-text" th:if="${book.averageRating != null}">
-                            <strong>Ocena:</strong> <span th:text="${#numbers.formatDecimal(book.averageRating, 1, 2)}">0.0</span> ⭐
+                        <p class="card-text" th:if="${book.isbn != null && !book.isbn.isEmpty()}">
+                            <strong>ISBN:</strong> <span th:text="${book.isbn}">-</span>
                         </p>
-                        <a th:href="@{/books/{id}(id=${book.id})}" class="btn btn-primary">Szczegóły</a>
+                        <div class="mb-2" th:if="${book.averageRating != null && book.averageRating > 0}">
+                            <strong>Ocena:</strong> 
+                            <span class="badge bg-warning text-dark" th:text="${#numbers.formatDecimal(book.averageRating, 1, 2)}">0.0</span>
+                            <span th:each="i : ${#numbers.sequence(1, book.averageRating.intValue())}">⭐</span>
+                            <small class="text-muted" th:if="${book.ratingsCount != null && book.ratingsCount > 0}">
+                                (<span th:text="${book.ratingsCount}"></span> ocen)
+                            </small>
+                        </div>
+                        <p class="card-text text-muted small flex-grow-1" th:if="${book.description != null && !book.description.isEmpty()}">
+                            <span th:text="${#strings.abbreviate(book.description, 100)}">Opis</span>
+                        </p>
+                        <div class="mt-auto">
+                            <a th:href="@{/books/{id}(id=${book.id})}" class="btn btn-primary w-100">Zobacz szczegóły</a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div th:if="${#lists.isEmpty(books)}" class="alert alert-info">
-            Brak książek do wyświetlenia.
+        <div th:if="${#lists.isEmpty(books) && search != null && !search.isEmpty()}" class="alert alert-info">
+            <h5>Nie znaleziono książek</h5>
+            <p>Nie znaleziono książek pasujących do zapytania "<span th:text="${search}"></span>".</p>
+            <p>Spróbuj wyszukać po:</p>
+            <ul>
+                <li>Tytule książki</li>
+                <li>Nazwisku autora</li>
+                <li>Numerze ISBN</li>
+            </ul>
+            <a th:href="@{/books}" class="btn btn-primary">Zobacz wszystkie książki</a>
+        </div>
+        
+        <div th:if="${#lists.isEmpty(books) && (search == null || search.isEmpty())}" class="alert alert-info">
+            Brak książek w katalogu.
         </div>
     </div>
     

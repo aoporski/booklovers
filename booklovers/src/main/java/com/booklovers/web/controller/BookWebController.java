@@ -14,6 +14,8 @@ import com.booklovers.service.user.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -69,9 +71,21 @@ public class BookWebController {
             }
         });
         
+        UserDto currentUser = null;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() 
+            && !authentication.getName().equals("anonymousUser")) {
+            try {
+                currentUser = userService.getCurrentUser();
+            } catch (Exception e) {
+                log.debug("Could not get current user: {}", e.getMessage());
+            }
+        }
+        
         model.addAttribute("book", book);
         model.addAttribute("reviews", reviews);
         model.addAttribute("reviewDto", new ReviewDto());
+        model.addAttribute("currentUser", currentUser);
         return "book-details";
     }
     
@@ -116,17 +130,111 @@ public class BookWebController {
             redirectAttributes.addFlashAttribute("error", "Błąd walidacji recenzji");
             return "redirect:/books/" + id;
         }
-        reviewService.createReview(id, reviewDto);
         
-        if (reviewDto.getRatingValue() != null && reviewDto.getRatingValue() >= 1 && reviewDto.getRatingValue() <= 5) {
-            try {
-                reviewService.createRatingAfterReview(id, reviewDto.getRatingValue());
-            } catch (Exception e) {
-                log.warn("Could not create rating for review: {}", e.getMessage());
+        try {
+            reviewService.createReview(id, reviewDto);
+            
+            if (reviewDto.getRatingValue() != null && reviewDto.getRatingValue() >= 1 && reviewDto.getRatingValue() <= 5) {
+                try {
+                    reviewService.createRatingAfterReview(id, reviewDto.getRatingValue());
+                } catch (Exception e) {
+                    log.warn("Could not create rating for review: {}", e.getMessage());
+                }
             }
+            
+            redirectAttributes.addFlashAttribute("success", "Recenzja została dodana!");
+        } catch (com.booklovers.exception.ConflictException e) {
+            redirectAttributes.addFlashAttribute("error", "Już dodałeś recenzję do tej książki. Możesz edytować istniejącą recenzję.");
+        } catch (Exception e) {
+            log.error("Error adding review: ", e);
+            redirectAttributes.addFlashAttribute("error", "Wystąpił błąd podczas dodawania recenzji: " + e.getMessage());
         }
         
-        redirectAttributes.addFlashAttribute("success", "Recenzja została dodana!");
         return "redirect:/books/" + id;
+    }
+    
+    @GetMapping("/books/{bookId}/reviews/{reviewId}/edit")
+    public String editReviewForm(@PathVariable Long bookId, @PathVariable Long reviewId, Model model) {
+        ReviewDto review = reviewService.getReviewById(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Review", reviewId));
+        BookDto book = bookService.getBookById(bookId)
+                .orElseThrow(() -> new ResourceNotFoundException("Book", bookId));
+        
+        UserDto currentUser = userService.getCurrentUser();
+        if (currentUser.getRole() != com.booklovers.entity.User.Role.ADMIN && !review.getUserId().equals(currentUser.getId())) {
+            throw new com.booklovers.exception.ForbiddenException("You can only edit your own reviews");
+        }
+        
+        model.addAttribute("book", book);
+        model.addAttribute("reviewDto", review);
+        return "edit-review";
+    }
+    
+    @PostMapping("/books/{bookId}/reviews/{reviewId}/edit")
+    public String updateReview(@PathVariable Long bookId, @PathVariable Long reviewId, 
+                               @Valid @ModelAttribute ReviewDto reviewDto, BindingResult result,
+                               RedirectAttributes redirectAttributes) {
+        if (result.hasErrors()) {
+            redirectAttributes.addFlashAttribute("error", "Błąd walidacji recenzji");
+            return "redirect:/books/" + bookId + "/reviews/" + reviewId + "/edit";
+        }
+        
+        try {
+            UserDto currentUser = userService.getCurrentUser();
+            ReviewDto review = reviewService.getReviewById(reviewId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Review", reviewId));
+            
+            if (currentUser.getRole() == com.booklovers.entity.User.Role.ADMIN) {
+                reviewService.updateReviewAsAdmin(reviewId, reviewDto);
+            } else if (review.getUserId().equals(currentUser.getId())) {
+                reviewService.updateReview(reviewId, reviewDto);
+            } else {
+                throw new com.booklovers.exception.ForbiddenException("You can only edit your own reviews");
+            }
+            
+            if (reviewDto.getRatingValue() != null && reviewDto.getRatingValue() >= 1 && reviewDto.getRatingValue() <= 5) {
+                try {
+                    reviewService.createRatingAfterReview(bookId, reviewDto.getRatingValue());
+                } catch (Exception e) {
+                    log.warn("Could not update rating for review: {}", e.getMessage());
+                }
+            }
+            
+            redirectAttributes.addFlashAttribute("success", "Recenzja została zaktualizowana!");
+        } catch (com.booklovers.exception.ForbiddenException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating review: ", e);
+            redirectAttributes.addFlashAttribute("error", "Wystąpił błąd podczas aktualizacji recenzji: " + e.getMessage());
+        }
+        
+        return "redirect:/books/" + bookId;
+    }
+    
+    @PostMapping("/books/{bookId}/reviews/{reviewId}/delete")
+    public String deleteReview(@PathVariable Long bookId, @PathVariable Long reviewId,
+                               RedirectAttributes redirectAttributes) {
+        try {
+            UserDto currentUser = userService.getCurrentUser();
+            ReviewDto review = reviewService.getReviewById(reviewId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Review", reviewId));
+            
+            if (currentUser.getRole() == com.booklovers.entity.User.Role.ADMIN) {
+                reviewService.deleteReviewAsAdmin(reviewId);
+            } else if (review.getUserId().equals(currentUser.getId())) {
+                reviewService.deleteReview(reviewId);
+            } else {
+                throw new com.booklovers.exception.ForbiddenException("You can only delete your own reviews");
+            }
+            
+            redirectAttributes.addFlashAttribute("success", "Recenzja została usunięta!");
+        } catch (com.booklovers.exception.ForbiddenException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error deleting review: ", e);
+            redirectAttributes.addFlashAttribute("error", "Wystąpił błąd podczas usuwania recenzji: " + e.getMessage());
+        }
+        
+        return "redirect:/books/" + bookId;
     }
 }
