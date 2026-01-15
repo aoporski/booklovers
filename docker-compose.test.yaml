@@ -1,0 +1,10 @@
+services:
+  test-runner:
+    image: maven:3.9.9-eclipse-temurin-21
+    container_name: booklovers-test
+    working_dir: /app
+    volumes:
+      - ./booklovers:/app
+    command: mvn clean test -Dspring.profiles.active=test
+    environment:
+      - SPRING_PROFILES_ACTIVE=test
