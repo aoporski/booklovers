@@ -5,7 +5,7 @@ booklovers/src/.DS_Store
 booklovers/WYMAGANIA.md
 .metals/
 .vscode/
-test-app.sh
+.booklovers/test-app.sh
 serwis-spo-eczno-ciowy-dla-czytelnik-w-book-lovers-community--wymagania.csvHELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar

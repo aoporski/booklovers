@@ -25,7 +25,7 @@ public class Rating {
     @SequenceGenerator(name = "rating_seq", sequenceName = "rating_seq", allocationSize = 1)
     private Long id;
     
-    @Column(name = "rating_value", nullable = false)
+    @Column(nullable = false)
     @Min(1)
     @Max(5)
     private Integer value;
