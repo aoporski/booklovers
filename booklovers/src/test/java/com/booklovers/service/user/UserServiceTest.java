@@ -73,7 +73,7 @@ class UserServiceTest {
     void testRegister_UsernameExists() {
         when(userRepository.existsByUsername("testuser")).thenReturn(true);
         
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(com.booklovers.exception.ConflictException.class, () -> {
             userService.register(registerRequest);
         });
         

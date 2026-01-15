@@ -11,10 +11,15 @@ import com.booklovers.service.book.BookService;
 import com.booklovers.service.rating.RatingService;
 import com.booklovers.service.review.ReviewService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -32,12 +37,25 @@ public class ImportServiceImp implements ImportService {
     private final ReviewService reviewService;
     private final RatingService ratingService;
     private final ObjectMapper objectMapper;
+    private final PlatformTransactionManager transactionManager;
+    
+    private TransactionTemplate getTransactionTemplate() {
+        return new TransactionTemplate(transactionManager);
+    }
+    
+    private ObjectMapper getConfiguredObjectMapper() {
+        ObjectMapper mapper = objectMapper.copy();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
+    }
     
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = {com.booklovers.exception.ConflictException.class})
     public void importUserDataFromJson(Long userId, String jsonData) {
         try {
-            UserDataExportDto data = objectMapper.readValue(jsonData, UserDataExportDto.class);
+            ObjectMapper configuredMapper = getConfiguredObjectMapper();
+            UserDataExportDto data = configuredMapper.readValue(jsonData, UserDataExportDto.class);
             importUserData(userId, data);
         } catch (Exception e) {
             log.error("Error importing user data from JSON: ", e);
@@ -46,7 +64,7 @@ public class ImportServiceImp implements ImportService {
     }
     
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = {com.booklovers.exception.ConflictException.class})
     public void importUserDataFromCsv(Long userId, String csvData) {
         try {
             UserDataExportDto data = parseCsvData(csvData);
@@ -77,11 +95,23 @@ public class ImportServiceImp implements ImportService {
                     }
                     
                     if (book != null) {
+                        final Book finalBook = book;
+                        final String finalShelfName = userBookDto.getShelfName() != null ? userBookDto.getShelfName() : "Moja biblioteczka";
                         try {
-                            bookService.addBookToUserLibrary(book.getId(), 
-                                    userBookDto.getShelfName() != null ? userBookDto.getShelfName() : "Moja biblioteczka");
-                        } catch (com.booklovers.exception.ConflictException e) {
-                            log.debug("Book already in library: {}", book.getId());
+                            getTransactionTemplate().execute(status -> {
+                                try {
+                                    bookService.addBookToUserLibrary(finalBook.getId(), finalShelfName);
+                                } catch (com.booklovers.exception.ConflictException e) {
+                                    log.debug("Book already in library: {}", finalBook.getId());
+                                    status.setRollbackOnly();
+                                } catch (Exception e) {
+                                    log.warn("Error adding book to library: {}", e.getMessage());
+                                    status.setRollbackOnly();
+                                }
+                                return null;
+                            });
+                        } catch (Exception e) {
+                            log.warn("Transaction failed for book {}: {}", finalBook.getId(), e.getMessage());
                         }
                     } else {
                         log.warn("Book not found: {}", userBookDto.getBookTitle());
@@ -108,13 +138,26 @@ public class ImportServiceImp implements ImportService {
                     }
                     
                     if (book != null) {
+                        final Book finalBook = book;
+                        final ReviewDto finalReviewDto = reviewDto;
                         try {
-                            reviewService.createReview(book.getId(), reviewDto);
-                            if (reviewDto.getRatingValue() != null && reviewDto.getRatingValue() >= 1 && reviewDto.getRatingValue() <= 5) {
-                                reviewService.createRatingAfterReview(book.getId(), reviewDto.getRatingValue());
-                            }
-                        } catch (com.booklovers.exception.ConflictException e) {
-                            log.debug("Review already exists for book: {}", book.getId());
+                            getTransactionTemplate().execute(status -> {
+                                try {
+                                    reviewService.createReview(finalBook.getId(), finalReviewDto);
+                                    if (finalReviewDto.getRatingValue() != null && finalReviewDto.getRatingValue() >= 1 && finalReviewDto.getRatingValue() <= 5) {
+                                        reviewService.createRatingAfterReview(finalBook.getId(), finalReviewDto.getRatingValue());
+                                    }
+                                } catch (com.booklovers.exception.ConflictException e) {
+                                    log.debug("Review already exists for book: {}", finalBook.getId());
+                                    status.setRollbackOnly();
+                                } catch (Exception e) {
+                                    log.warn("Error creating review: {}", e.getMessage());
+                                    status.setRollbackOnly();
+                                }
+                                return null;
+                            });
+                        } catch (Exception e) {
+                            log.warn("Transaction failed for review: {}", e.getMessage());
                         }
                     } else {
                         log.warn("Book not found for review: {}", reviewDto.getBookTitle());
@@ -141,10 +184,20 @@ public class ImportServiceImp implements ImportService {
                     }
                     
                     if (book != null && ratingDto.getValue() != null && ratingDto.getValue() >= 1 && ratingDto.getValue() <= 5) {
+                        final Book finalBook = book;
+                        final RatingDto finalRatingDto = ratingDto;
                         try {
-                            ratingService.createOrUpdateRating(book.getId(), ratingDto);
+                            getTransactionTemplate().execute(status -> {
+                                try {
+                                    ratingService.createOrUpdateRating(finalBook.getId(), finalRatingDto);
+                                } catch (Exception e) {
+                                    log.warn("Error creating rating: {}", e.getMessage());
+                                    status.setRollbackOnly();
+                                }
+                                return null;
+                            });
                         } catch (Exception e) {
-                            log.warn("Error importing rating for book {}: {}", book.getId(), e.getMessage());
+                            log.warn("Transaction failed for rating: {}", e.getMessage());
                         }
                     } else {
                         log.warn("Book not found for rating: {}", ratingDto.getBookTitle());

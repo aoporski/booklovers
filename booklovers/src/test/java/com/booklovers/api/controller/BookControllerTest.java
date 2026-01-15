@@ -2,6 +2,7 @@ package com.booklovers.api.controller;
 
 import com.booklovers.dto.BookDto;
 import com.booklovers.service.book.BookService;
+import com.booklovers.service.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -26,6 +27,9 @@ class BookControllerTest {
     
     @MockBean
     private BookService bookService;
+    
+    @MockBean
+    private UserService userService;
     
     @Test
     @WithMockUser
