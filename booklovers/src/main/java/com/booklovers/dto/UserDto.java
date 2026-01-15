@@ -32,6 +32,7 @@ public class UserDto {
     private String firstName;
     private String lastName;
     private String bio;
+    private String avatarUrl;
     private User.Role role;
     private Boolean isBlocked;
     private LocalDateTime createdAt;

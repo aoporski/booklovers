@@ -154,6 +154,7 @@ public class BookServiceImp implements BookService {
     public List<BookDto> getUserBooks(Long userId) {
         List<UserBook> userBooks = userBookRepository.findByUserId(userId);
         return userBooks.stream()
+                .filter(ub -> ub.getBook() != null)
                 .map(ub -> {
                     BookDto dto = bookMapper.toDto(ub.getBook());
                     Double avgRating = ratingRepository.getAverageRatingByBookId(ub.getBook().getId());
@@ -168,6 +169,7 @@ public class BookServiceImp implements BookService {
     public List<BookDto> getUserBooksByShelf(Long userId, String shelfName) {
         List<UserBook> userBooks = userBookRepository.findByUserIdAndShelfName(userId, shelfName);
         return userBooks.stream()
+                .filter(ub -> ub.getBook() != null)
                 .map(ub -> {
                     BookDto dto = bookMapper.toDto(ub.getBook());
                     Double avgRating = ratingRepository.getAverageRatingByBookId(ub.getBook().getId());
@@ -199,6 +201,30 @@ public class BookServiceImp implements BookService {
     
     @Override
     @Transactional
+    public void createShelf(Long userId, String shelfName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        
+        List<String> defaultShelves = getDefaultShelves();
+        if (defaultShelves.contains(shelfName)) {
+            throw new BadRequestException("Cannot create default shelf: " + shelfName);
+        }
+        
+        List<String> existingShelves = userBookRepository.findDistinctShelfNamesByUserId(userId);
+        if (existingShelves.contains(shelfName)) {
+            throw new ConflictException("Shelf already exists: " + shelfName);
+        }
+        
+        UserBook emptyShelf = UserBook.builder()
+                .user(user)
+                .book(null)
+                .shelfName(shelfName)
+                .build();
+        userBookRepository.save(emptyShelf);
+    }
+    
+    @Override
+    @Transactional
     public UserBookDto addBookToUserLibrary(Long bookId, String shelfName) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
@@ -217,6 +243,14 @@ public class BookServiceImp implements BookService {
         
         if (existing.isPresent()) {
             throw new ConflictException("Book already exists in this shelf");
+        }
+        
+        List<UserBook> emptyShelves = userBookRepository.findByUserIdAndShelfName(user.getId(), shelfName)
+                .stream()
+                .filter(ub -> ub.getBook() == null)
+                .collect(Collectors.toList());
+        if (!emptyShelves.isEmpty()) {
+            userBookRepository.deleteAll(emptyShelves);
         }
         
         UserBook userBook = UserBook.builder()
@@ -274,6 +308,15 @@ public class BookServiceImp implements BookService {
             throw new ConflictException("Book already exists in target shelf");
         }
         
+        List<UserBook> emptyShelves = userBookRepository.findByUserIdAndShelfName(user.getId(), finalToShelf)
+                .stream()
+                .filter(ub -> ub.getBook() == null)
+                .collect(Collectors.toList());
+        if (!emptyShelves.isEmpty()) {
+            userBookRepository.deleteAll(emptyShelves);
+            userBookRepository.flush();
+        }
+        
         userBook.setShelfName(finalToShelf);
         userBookRepository.save(userBook);
     }
@@ -287,7 +330,10 @@ public class BookServiceImp implements BookService {
         }
         
         List<UserBook> userBooks = userBookRepository.findByUserIdAndShelfName(userId, shelfName);
-        userBookRepository.deleteAll(userBooks);
+        if (userBooks != null && !userBooks.isEmpty()) {
+            userBookRepository.deleteAll(userBooks);
+            userBookRepository.flush();
+        }
     }
     
     private UserBookDto toUserBookDto(UserBook userBook) {

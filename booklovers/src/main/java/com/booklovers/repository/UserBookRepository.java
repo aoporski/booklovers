@@ -12,7 +12,10 @@ import java.util.Optional;
 @Repository
 public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     List<UserBook> findByUserId(Long userId);
-    List<UserBook> findByUserIdAndShelfName(Long userId, String shelfName);
+    
+    @Query("SELECT ub FROM UserBook ub WHERE ub.user.id = :userId AND ub.shelfName = :shelfName")
+    List<UserBook> findByUserIdAndShelfName(@Param("userId") Long userId, @Param("shelfName") String shelfName);
+    
     List<UserBook> findByBookId(Long bookId);
     
     @Query("SELECT ub FROM UserBook ub WHERE ub.user.id = :userId AND ub.book.id = :bookId")
@@ -23,4 +26,10 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     
     @Query("SELECT DISTINCT ub.shelfName FROM UserBook ub WHERE ub.user.id = :userId")
     List<String> findDistinctShelfNamesByUserId(@Param("userId") Long userId);
+    
+    @Query("SELECT COUNT(DISTINCT ub.book.id) FROM UserBook ub WHERE ub.user.id = :userId AND ub.book IS NOT NULL AND EXTRACT(YEAR FROM ub.addedAt) = :year")
+    Long countBooksReadInYear(@Param("userId") Long userId, @Param("year") int year);
+    
+    @Query("SELECT COUNT(DISTINCT ub.user.id) FROM UserBook ub WHERE ub.book.id = :bookId AND ub.book IS NOT NULL")
+    Long countReadersByBookId(@Param("bookId") Long bookId);
 }

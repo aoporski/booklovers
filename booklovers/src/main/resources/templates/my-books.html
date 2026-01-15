@@ -43,7 +43,7 @@
                            class="list-group-item list-group-item-action"
                            th:classappend="${currentShelf == null ? 'active' : ''}">
                             Wszystkie książki
-                            <span class="badge bg-secondary float-end" th:text="${#lists.size(books)}">0</span>
+                            <span class="badge bg-secondary float-end" th:text="${totalBooksCount != null ? totalBooksCount : 0}">0</span>
                         </a>
                         <a th:each="shelf : ${shelves}"
                            th:href="@{/my-books/shelves/{shelfName}(shelfName=${shelf})}"

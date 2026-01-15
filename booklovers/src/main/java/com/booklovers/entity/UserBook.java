@@ -27,8 +27,8 @@ public class UserBook {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "book_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "book_id", nullable = true)
     private Book book;
     
     @Column(name = "shelf_name", nullable = false)

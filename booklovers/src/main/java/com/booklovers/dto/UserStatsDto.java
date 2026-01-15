@@ -18,4 +18,6 @@ public class UserStatsDto {
     private Double averageRatingGiven;
     private Integer shelvesCount;
     private Integer favoriteGenresCount;
+    private Integer booksReadThisYear;
+    private Integer readingChallengeGoal;
 }

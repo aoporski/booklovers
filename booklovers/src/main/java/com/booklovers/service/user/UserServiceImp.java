@@ -84,11 +84,8 @@ public class UserServiceImp implements UserService {
         if (userDto.getBio() != null) {
             user.setBio(userDto.getBio());
         }
-        if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail())) {
-            if (userRepository.existsByEmail(userDto.getEmail())) {
-                throw new ConflictException("Email already exists");
-            }
-            user.setEmail(userDto.getEmail());
+        if (userDto.getAvatarUrl() != null) {
+            user.setAvatarUrl(userDto.getAvatarUrl());
         }
         if (userDto.getPassword() != null && !userDto.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(userDto.getPassword()));

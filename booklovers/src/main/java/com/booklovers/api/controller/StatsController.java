@@ -50,4 +50,16 @@ public class StatsController {
             UserStatsDto stats = statsService.getUserStats(userId);
             return ResponseEntity.ok(stats);
     }
+    
+    @Operation(summary = "Pobierz statystyki książki", description = "Zwraca statystyki czytelnictwa dla określonej książki (liczba czytelników, średnia ocena, rozkład ocen)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Statystyki książki"),
+            @ApiResponse(responseCode = "404", description = "Książka nie została znaleziona")
+    })
+    @GetMapping("/book/{bookId}")
+    public ResponseEntity<com.booklovers.dto.BookStatsDto> getBookStats(
+            @Parameter(description = "ID książki", required = true) @PathVariable Long bookId) {
+            com.booklovers.dto.BookStatsDto stats = statsService.getBookStats(bookId);
+            return ResponseEntity.ok(stats);
+    }
 }

@@ -19,11 +19,16 @@ public class UserMapper {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .bio(user.getBio())
+                .avatarUrl(user.getAvatarUrl())
                 .role(user.getRole())
                 .isBlocked(user.getIsBlocked())
                 .createdAt(user.getCreatedAt())
                 .booksCount(user.getUserBooks() != null ? 
-                    (int) user.getUserBooks().stream().map(ub -> ub.getBook().getId()).distinct().count() : 0)
+                    (int) user.getUserBooks().stream()
+                        .filter(ub -> ub.getBook() != null)
+                        .map(ub -> ub.getBook().getId())
+                        .distinct()
+                        .count() : 0)
                 .reviewsCount(user.getReviews() != null ? user.getReviews().size() : 0)
                 .build();
     }
@@ -41,6 +46,7 @@ public class UserMapper {
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
                 .bio(dto.getBio())
+                .avatarUrl(dto.getAvatarUrl())
                 .role(dto.getRole() != null ? dto.getRole() : User.Role.USER)
                 .build();
     }

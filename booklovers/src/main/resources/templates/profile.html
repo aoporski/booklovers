@@ -5,6 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profil - Book Lovers</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .avatar-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #dee2e6;
+        }
+        .avatar-placeholder {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background-color: #dee2e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #6c757d;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -24,45 +44,146 @@
     <div class="container mt-4">
         <h1>Mój profil</h1>
         
-        <div th:if="${param.updated}" class="alert alert-success">
-            Profil został zaktualizowany.
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-        <div th:if="${param.error}" class="alert alert-danger">
-            Wystąpił błąd podczas aktualizacji profilu.
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         
         <div class="row">
-            <div class="col-md-6">
-                <form th:action="@{/profile}" th:object="${userDto}" method="post">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Nazwa użytkownika</label>
-                        <input type="text" class="form-control" id="username" th:field="*{username}" readonly>
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Edycja profilu</h5>
                     </div>
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" th:field="*{email}">
+                    <div class="card-body">
+                        <form th:action="@{/profile}" th:object="${userDto}" method="post">
+                            <div class="row mb-3">
+                                <div class="col-md-4 text-center">
+                                    <div th:if="${userDto.avatarUrl != null && !userDto.avatarUrl.isEmpty()}">
+                                        <img th:src="${userDto.avatarUrl}" alt="Avatar" class="avatar-preview mb-2">
+                                    </div>
+                                    <div th:if="${userDto.avatarUrl == null || userDto.avatarUrl.isEmpty()}" class="avatar-placeholder mb-2">
+                                        👤
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="avatarUrl" class="form-label">URL Avatara</label>
+                                        <input type="url" class="form-control" id="avatarUrl" th:field="*{avatarUrl}" 
+                                               placeholder="https://example.com/avatar.jpg">
+                                        <small class="form-text text-muted">Wklej URL do obrazka avatara</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Nazwa użytkownika</label>
+                                <input type="text" class="form-control" id="username" th:field="*{username}" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" th:field="*{email}" readonly>
+                                <small class="form-text text-muted">Email nie może być zmieniony</small>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="firstName" class="form-label">Imię</label>
+                                    <input type="text" class="form-control" id="firstName" th:field="*{firstName}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="lastName" class="form-label">Nazwisko</label>
+                                    <input type="text" class="form-control" id="lastName" th:field="*{lastName}">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="bio" class="form-label">Bio</label>
+                                <textarea class="form-control" id="bio" th:field="*{bio}" rows="4" 
+                                          placeholder="Napisz coś o sobie..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+                        </form>
                     </div>
-                    <div class="mb-3">
-                        <label for="firstName" class="form-label">Imię</label>
-                        <input type="text" class="form-control" id="firstName" th:field="*{firstName}">
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Backup danych</h5>
                     </div>
-                    <div class="mb-3">
-                        <label for="lastName" class="form-label">Nazwisko</label>
-                        <input type="text" class="form-control" id="lastName" th:field="*{lastName}">
+                    <div class="card-body">
+                        <p class="text-muted">Eksportuj swoje dane (książki, recenzje, oceny) do pliku.</p>
+                        <div class="d-grid gap-2 d-md-block">
+                            <a th:href="@{/profile/export/json}" class="btn btn-outline-primary">
+                                📥 Eksportuj JSON
+                            </a>
+                            <a th:href="@{/profile/export/csv}" class="btn btn-outline-secondary">
+                                📥 Eksportuj CSV
+                            </a>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="bio" class="form-label">Bio</label>
-                        <textarea class="form-control" id="bio" th:field="*{bio}" rows="3"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
-                </form>
-            </div>
-            <div class="col-md-6">
+                </div>
+                
                 <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Import danych</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Zaimportuj swoje dane z wcześniej wyeksportowanego pliku (JSON lub CSV).</p>
+                        <form th:action="@{/profile/import}" method="post" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="file" class="form-label">Wybierz plik</label>
+                                <input type="file" class="form-control" id="file" name="file" accept=".json,.csv" required>
+                                <small class="form-text text-muted">Obsługiwane formaty: JSON, CSV</small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="format" class="form-label">Format pliku</label>
+                                <select class="form-select" id="format" name="format" required>
+                                    <option value="">Wybierz format</option>
+                                    <option value="json">JSON</option>
+                                    <option value="csv">CSV</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-success">📤 Zaimportuj dane</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card mb-3">
                     <div class="card-body">
                         <h5 class="card-title">Statystyki</h5>
-                        <p class="card-text">Książki w biblioteczce: <strong th:text="${user.booksCount}">0</strong></p>
-                        <p class="card-text">Recenzje: <strong th:text="${user.reviewsCount}">0</strong></p>
+                        <p class="card-text">Książki w biblioteczce: <strong th:text="${user.booksCount != null ? user.booksCount : 0}">0</strong></p>
+                        <p class="card-text">Recenzje: <strong th:text="${user.reviewsCount != null ? user.reviewsCount : 0}">0</strong></p>
+                        <p class="card-text" th:if="${user.averageRating != null && user.averageRating > 0}">
+                            Średnia ocena: <strong th:text="${#numbers.formatDecimal(user.averageRating, 1, 2)}">0.0</strong> ⭐
+                        </p>
+                    </div>
+                </div>
+                
+                <div th:if="${userStats != null}" class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">📚 Reading Challenge</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            <strong>Przeczytane w tym roku:</strong>
+                            <span class="h4 d-block" th:text="${userStats.booksReadThisYear != null ? userStats.booksReadThisYear : 0}">0</span>
+                        </p>
+                        <div th:if="${userStats.readingChallengeGoal != null && userStats.readingChallengeGoal > 0}" class="mt-2">
+                            <p class="mb-1"><strong>Cel:</strong> <span th:text="${userStats.readingChallengeGoal}">0</span> książek</p>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                                     th:styleappend="'width: ' + ${userStats.booksReadThisYear != null && userStats.readingChallengeGoal > 0 ? (userStats.booksReadThisYear * 100 / userStats.readingChallengeGoal) : 0} + '%'"
+                                     th:attr="aria-valuenow=${userStats.booksReadThisYear}, aria-valuemin=0, aria-valuemax=${userStats.readingChallengeGoal}">
+                                    <span th:text="${userStats.booksReadThisYear != null ? userStats.booksReadThisYear : 0} + '/' + ${userStats.readingChallengeGoal}">0/0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-muted small mt-2 mb-0">Rok: <span th:text="${#temporals.year(#temporals.createToday())}">2026</span></p>
                     </div>
                 </div>
             </div>
@@ -70,5 +191,31 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('avatarUrl').addEventListener('input', function(e) {
+            const url = e.target.value;
+            const preview = document.querySelector('.avatar-preview');
+            const placeholder = document.querySelector('.avatar-placeholder');
+            
+            if (url && url.trim() !== '') {
+                if (preview) {
+                    preview.src = url;
+                    preview.style.display = 'block';
+                } else {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.alt = 'Avatar';
+                    img.className = 'avatar-preview mb-2';
+                    if (placeholder) {
+                        placeholder.parentNode.replaceChild(img, placeholder);
+                    }
+                }
+            } else {
+                if (preview) {
+                    preview.style.display = 'none';
+                }
+            }
+        });
+    </script>
 </body>
 </html>
