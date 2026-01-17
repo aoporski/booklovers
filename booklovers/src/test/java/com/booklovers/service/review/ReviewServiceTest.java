@@ -235,11 +235,16 @@ class ReviewServiceTest {
     @Test
     void testDeleteReview_Success() {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
-        when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
+        when(reviewRepository.findByIdWithUser(1L)).thenReturn(Optional.of(review));
+        when(reviewRepository.deleteReviewById(1L)).thenReturn(1);
+        when(reviewRepository.existsById(1L)).thenReturn(false);
 
         reviewService.deleteReview(1L);
 
-        verify(reviewRepository, times(1)).deleteById(1L);
+        verify(reviewRepository).findByIdWithUser(1L);
+        verify(reviewRepository).deleteReviewById(1L);
+        verify(reviewRepository).flush();
+        verify(reviewRepository).existsById(1L);
     }
 
     @Test
@@ -256,22 +261,26 @@ class ReviewServiceTest {
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
-        when(reviewRepository.findById(1L)).thenReturn(Optional.of(otherReview));
+        when(reviewRepository.findByIdWithUser(1L)).thenReturn(Optional.of(otherReview));
 
         assertThrows(ForbiddenException.class, () -> {
             reviewService.deleteReview(1L);
         });
 
-        verify(reviewRepository, never()).deleteById(anyLong());
+        verify(reviewRepository).findByIdWithUser(1L);
+        verify(reviewRepository, never()).delete(any(Review.class));
+        verify(reviewRepository, never()).flush();
     }
 
     @Test
     void testDeleteReviewAsAdmin_Success() {
-        when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
+        when(reviewRepository.existsById(1L)).thenReturn(true);
 
         reviewService.deleteReviewAsAdmin(1L);
 
-        verify(reviewRepository, times(1)).deleteById(1L);
+        verify(reviewRepository).existsById(1L);
+        verify(reviewRepository).deleteById(1L);
+        verify(reviewRepository).flush();
     }
 
     @Test

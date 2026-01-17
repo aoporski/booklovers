@@ -326,27 +326,33 @@ public class BookWebController {
     @PostMapping("/books/{bookId}/reviews/{reviewId}/delete")
     public String deleteReview(@PathVariable Long bookId, @PathVariable Long reviewId,
                                RedirectAttributes redirectAttributes) {
+        log.error("=== DELETE REVIEW REQUEST START: bookId={}, reviewId={} ===", bookId, reviewId);
         try {
             UserDto currentUser = userService.getCurrentUser();
-            ReviewDto review = reviewService.getReviewById(reviewId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Review", reviewId));
+            log.error("=== Current user: {} (ID: {}), Role: {} ===", currentUser.getUsername(), currentUser.getId(), currentUser.getRole());
             
             if (currentUser.getRole() == com.booklovers.entity.User.Role.ADMIN) {
+                log.error("=== Deleting review {} as ADMIN ===", reviewId);
                 reviewService.deleteReviewAsAdmin(reviewId);
-            } else if (review.getUserId().equals(currentUser.getId())) {
-                reviewService.deleteReview(reviewId);
             } else {
-                throw new com.booklovers.exception.ForbiddenException("You can only delete your own reviews");
+                log.error("=== Deleting review {} as USER ===", reviewId);
+                reviewService.deleteReview(reviewId);
             }
             
+            log.error("=== Review {} successfully deleted ===", reviewId);
             redirectAttributes.addFlashAttribute("success", "Recenzja została usunięta!");
         } catch (com.booklovers.exception.ForbiddenException e) {
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            log.error("=== ForbiddenException when deleting review {}: {} ===", reviewId, e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Nie masz uprawnień do usunięcia tej recenzji.");
+        } catch (com.booklovers.exception.ResourceNotFoundException e) {
+            log.error("=== ResourceNotFoundException when deleting review {}: {} ===", reviewId, e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Recenzja nie została znaleziona.");
         } catch (Exception e) {
-            log.error("Error deleting review: ", e);
+            log.error("=== ERROR deleting review {}: ===", reviewId, e);
             redirectAttributes.addFlashAttribute("error", "Wystąpił błąd podczas usuwania recenzji: " + e.getMessage());
         }
         
+        log.error("=== DELETE REVIEW REQUEST END: bookId={}, reviewId={} ===", bookId, reviewId);
         return "redirect:/books/" + bookId;
     }
 }

@@ -38,7 +38,7 @@ public class SecurityConfig {
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll() // Swagger UI
                 .requestMatchers("/books", "/books/{id}").permitAll() // Przeglądanie książek bez logowania
-                .requestMatchers("/books/add", "/books/*/add-to-library", "/books/*/reviews").authenticated() // Dodawanie wymaga logowania
+                .requestMatchers("/books/add", "/books/*/add-to-library", "/books/*/reviews", "/books/*/reviews/*/delete", "/books/*/reviews/*/edit").authenticated() // Dodawanie wymaga logowania
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/**").authenticated()
                 .requestMatchers("/admin/**").hasRole("ADMIN")

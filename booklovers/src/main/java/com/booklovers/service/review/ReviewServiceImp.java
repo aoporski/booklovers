@@ -13,6 +13,7 @@ import com.booklovers.repository.ReviewRepository;
 import com.booklovers.repository.UserRepository;
 import com.booklovers.service.rating.RatingService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReviewServiceImp implements ReviewService {
@@ -121,23 +123,53 @@ public class ReviewServiceImp implements ReviewService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User", username));
         
-        Review review = reviewRepository.findById(id)
+        Review review = reviewRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Review", id));
         
+        log.error("=== ReviewService.deleteReview START: reviewId={}, currentUserId={}, reviewUserId={} ===", id, user.getId(), review.getUser().getId());
+        
         if (!review.getUser().getId().equals(user.getId())) {
+            log.error("=== User {} attempted to delete review {} owned by user {} ===", user.getId(), id, review.getUser().getId());
             throw new ForbiddenException("You can only delete your own reviews");
         }
         
-        reviewRepository.deleteById(id);
+        log.error("=== About to delete review {} using native query ===", id);
+        int deletedCount = reviewRepository.deleteReviewById(id);
+        reviewRepository.flush();
+        
+        log.error("=== Native delete query executed. Deleted count: {} ===", deletedCount);
+        
+        boolean stillExists = reviewRepository.existsById(id);
+        log.error("=== Review {} deleted. Still exists: {} ===", id, stillExists);
+        
+        if (stillExists) {
+            log.error("=== Review {} was not deleted by native query! Attempting deleteById. ===", id);
+            reviewRepository.deleteById(id);
+            reviewRepository.flush();
+            
+            stillExists = reviewRepository.existsById(id);
+            if (stillExists) {
+                log.error("=== Review {} still exists after deleteById! Attempting delete(review). ===", id);
+                reviewRepository.delete(review);
+                reviewRepository.flush();
+                
+                stillExists = reviewRepository.existsById(id);
+                log.error("=== Review {} still exists after delete(review): {} ===", id, stillExists);
+            }
+        }
+        
+        log.error("=== ReviewService.deleteReview END: reviewId={} ===", id);
     }
     
     @Override
     @Transactional
     public void deleteReviewAsAdmin(Long id) {
-        Review review = reviewRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Review", id));
+        if (!reviewRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Review", id);
+        }
         
         reviewRepository.deleteById(id);
+        reviewRepository.flush();
     }
     
     @Override
