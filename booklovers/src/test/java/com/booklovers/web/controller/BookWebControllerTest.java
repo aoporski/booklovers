@@ -70,7 +70,7 @@ class BookWebControllerTest {
         userDto = UserDto.builder()
                 .id(1L)
                 .username("testuser")
-                .role(User.Role.USER)
+                .role("USER")
                 .build();
 
         reviewDto = ReviewDto.builder()
@@ -499,7 +499,7 @@ class BookWebControllerTest {
         UserDto adminUser = UserDto.builder()
                 .id(1L)
                 .username("admin")
-                .role(User.Role.ADMIN)
+                .role("ADMIN")
                 .build();
 
         when(reviewService.getReviewById(1L)).thenReturn(Optional.of(otherReview));
@@ -548,7 +548,7 @@ class BookWebControllerTest {
         UserDto adminUser = UserDto.builder()
                 .id(1L)
                 .username("admin")
-                .role(User.Role.ADMIN)
+                .role("ADMIN")
                 .build();
 
         ReviewDto existingReview = ReviewDto.builder()
@@ -593,7 +593,7 @@ class BookWebControllerTest {
         UserDto adminUser = UserDto.builder()
                 .id(1L)
                 .username("admin")
-                .role(User.Role.ADMIN)
+                .role("ADMIN")
                 .build();
 
         when(userService.getCurrentUser()).thenReturn(adminUser);

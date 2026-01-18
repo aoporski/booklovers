@@ -53,7 +53,7 @@ class AuthControllerTest {
                 .email("newuser@example.com")
                 .firstName("John")
                 .lastName("Doe")
-                .role(User.Role.USER)
+                .role("USER")
                 .createdAt(LocalDateTime.now())
                 .build();
         

@@ -1,6 +1,5 @@
 package com.booklovers.dto;
 
-import com.booklovers.entity.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -33,7 +32,7 @@ public class UserDto {
     private String lastName;
     private String bio;
     private String avatarUrl;
-    private User.Role role;
+    private String role;
     private Boolean isBlocked;
     private LocalDateTime createdAt;
     private Integer booksCount;

@@ -47,7 +47,7 @@ class UserControllerTest {
                 .lastName("User")
                 .bio("Test bio")
                 .avatarUrl("http://example.com/avatar.jpg")
-                .role(User.Role.USER)
+                .role("USER")
                 .createdAt(LocalDateTime.now())
                 .booksCount(5)
                 .reviewsCount(3)
@@ -101,7 +101,7 @@ class UserControllerTest {
                 .lastName("Name")
                 .bio("Updated bio")
                 .avatarUrl("http://example.com/new-avatar.jpg")
-                .role(User.Role.USER)
+                .role("USER")
                 .createdAt(LocalDateTime.now())
                 .booksCount(5)
                 .reviewsCount(3)
@@ -149,7 +149,7 @@ class UserControllerTest {
                 .id(1L)
                 .username("user1")
                 .email("user1@example.com")
-                .role(User.Role.USER)
+                .role("USER")
                 .booksCount(10)
                 .build();
         
@@ -157,7 +157,7 @@ class UserControllerTest {
                 .id(2L)
                 .username("user2")
                 .email("user2@example.com")
-                .role(User.Role.USER)
+                .role("USER")
                 .booksCount(5)
                 .build();
         

@@ -129,10 +129,10 @@
                         <div class="text-end">
                             <small class="text-muted d-block" th:text="${#temporals.format(review.createdAt, 'dd.MM.yyyy HH:mm')}">Data</small>
                             <div class="mt-2" sec:authorize="isAuthenticated()">
-                                <a th:if="${currentUser != null && (currentUser.role.name() == 'ADMIN' || currentUser.id == review.userId)}"
+                                <a th:if="${currentUser != null && (currentUser.role == 'ADMIN' || currentUser.id == review.userId)}"
                                    th:href="@{/books/{bookId}/reviews/{reviewId}/edit(bookId=${book.id}, reviewId=${review.id})}"
                                    class="btn btn-sm btn-outline-primary me-1">Edytuj</a>
-                                <form th:if="${currentUser != null && (currentUser.role.name() == 'ADMIN' || currentUser.id == review.userId)}"
+                                <form th:if="${currentUser != null && (currentUser.role == 'ADMIN' || currentUser.id == review.userId)}"
                                       th:action="@{/books/{bookId}/reviews/{reviewId}/delete(bookId=${book.id}, reviewId=${review.id})}"
                                       method="post" class="d-inline"
                                       onsubmit="return confirm('Czy na pewno chcesz usunąć tę recenzję?');">

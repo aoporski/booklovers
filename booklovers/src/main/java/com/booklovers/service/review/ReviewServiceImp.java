@@ -86,7 +86,7 @@ public class ReviewServiceImp implements ReviewService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User", username));
         
-        Review review = reviewRepository.findById(id)
+        Review review = reviewRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Review", id));
         
         if (!review.getUser().getId().equals(user.getId())) {
@@ -174,7 +174,7 @@ public class ReviewServiceImp implements ReviewService {
     
     @Override
     public Optional<ReviewDto> getReviewById(Long id) {
-        return reviewRepository.findById(id)
+        return reviewRepository.findByIdWithUser(id)
                 .map(reviewMapper::toDto);
     }
     

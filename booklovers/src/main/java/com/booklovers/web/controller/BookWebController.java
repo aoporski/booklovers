@@ -273,7 +273,7 @@ public class BookWebController {
                 .orElseThrow(() -> new ResourceNotFoundException("Book", bookId));
         
         UserDto currentUser = userService.getCurrentUser();
-        if (currentUser.getRole() != com.booklovers.entity.User.Role.ADMIN && !review.getUserId().equals(currentUser.getId())) {
+        if (!"ADMIN".equals(currentUser.getRole()) && !review.getUserId().equals(currentUser.getId())) {
             throw new com.booklovers.exception.ForbiddenException("You can only edit your own reviews");
         }
         
@@ -296,9 +296,9 @@ public class BookWebController {
             ReviewDto review = reviewService.getReviewById(reviewId)
                     .orElseThrow(() -> new ResourceNotFoundException("Review", reviewId));
             
-            if (currentUser.getRole() == com.booklovers.entity.User.Role.ADMIN) {
+            if ("ADMIN".equals(currentUser.getRole())) {
                 reviewService.updateReviewAsAdmin(reviewId, reviewDto);
-            } else if (review.getUserId().equals(currentUser.getId())) {
+            } else if (review.getUserId() != null && review.getUserId().equals(currentUser.getId())) {
                 reviewService.updateReview(reviewId, reviewDto);
             } else {
                 throw new com.booklovers.exception.ForbiddenException("You can only edit your own reviews");
@@ -331,7 +331,7 @@ public class BookWebController {
             UserDto currentUser = userService.getCurrentUser();
             log.error("=== Current user: {} (ID: {}), Role: {} ===", currentUser.getUsername(), currentUser.getId(), currentUser.getRole());
             
-            if (currentUser.getRole() == com.booklovers.entity.User.Role.ADMIN) {
+            if ("ADMIN".equals(currentUser.getRole())) {
                 log.error("=== Deleting review {} as ADMIN ===", reviewId);
                 reviewService.deleteReviewAsAdmin(reviewId);
             } else {
