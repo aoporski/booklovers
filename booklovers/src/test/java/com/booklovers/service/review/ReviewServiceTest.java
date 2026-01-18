@@ -313,4 +313,80 @@ class ReviewServiceTest {
 
         verify(ratingService, never()).createOrUpdateRating(anyLong(), any());
     }
+
+    @Test
+    void testCreateRatingAfterReview_NullRating() {
+        reviewService.createRatingAfterReview(1L, null);
+
+        verify(ratingService, never()).createOrUpdateRating(anyLong(), any());
+    }
+
+    @Test
+    void testCreateRatingAfterReview_RatingTooLow() {
+        Integer ratingValue = 0; // Invalid
+
+        reviewService.createRatingAfterReview(1L, ratingValue);
+
+        verify(ratingService, never()).createOrUpdateRating(anyLong(), any());
+    }
+
+    @Test
+    void testGetReviewById_Success() {
+        when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
+        when(reviewMapper.toDto(review)).thenReturn(reviewDto);
+
+        Optional<ReviewDto> result = reviewService.getReviewById(1L);
+
+        assertTrue(result.isPresent());
+        assertEquals("Great book!", result.get().getContent());
+        verify(reviewRepository).findById(1L);
+        verify(reviewMapper).toDto(review);
+    }
+
+    @Test
+    void testGetReviewById_NotFound() {
+        when(reviewRepository.findById(1L)).thenReturn(Optional.empty());
+
+        Optional<ReviewDto> result = reviewService.getReviewById(1L);
+
+        assertFalse(result.isPresent());
+        verify(reviewRepository).findById(1L);
+        verify(reviewMapper, never()).toDto(any());
+    }
+
+    @Test
+    void testGetReviewsByUserId() {
+        when(reviewRepository.findByUserId(1L)).thenReturn(Arrays.asList(review));
+        when(reviewMapper.toDto(review)).thenReturn(reviewDto);
+
+        List<ReviewDto> result = reviewService.getReviewsByUserId(1L);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(reviewRepository).findByUserId(1L);
+    }
+
+    @Test
+    void testGetAllReviews() {
+        when(reviewRepository.findAll()).thenReturn(Arrays.asList(review));
+        when(reviewMapper.toDto(review)).thenReturn(reviewDto);
+
+        List<ReviewDto> result = reviewService.getAllReviews();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(reviewRepository).findAll();
+    }
+
+    @Test
+    void testDeleteReviewAsAdmin_NotFound() {
+        when(reviewRepository.existsById(1L)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            reviewService.deleteReviewAsAdmin(1L);
+        });
+
+        verify(reviewRepository).existsById(1L);
+        verify(reviewRepository, never()).deleteById(anyLong());
+    }
 }

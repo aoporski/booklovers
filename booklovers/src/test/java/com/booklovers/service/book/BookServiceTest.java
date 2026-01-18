@@ -25,6 +25,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -373,5 +374,280 @@ class BookServiceTest {
         });
 
         verify(userBookRepository, never()).save(any(UserBook.class));
+    }
+
+    @Test
+    void testDeleteShelf_Success() {
+        String shelfName = "Moja półka";
+        when(userBookRepository.findByUserIdAndShelfName(1L, shelfName))
+                .thenReturn(Arrays.asList(
+                        UserBook.builder().id(1L).user(user).book(book).shelfName(shelfName).build()
+                ));
+        doNothing().when(userBookRepository).deleteAll(any());
+        doNothing().when(userBookRepository).flush();
+
+        bookService.deleteShelf(1L, shelfName);
+
+        verify(userBookRepository).findByUserIdAndShelfName(1L, shelfName);
+        verify(userBookRepository).deleteAll(any());
+        verify(userBookRepository).flush();
+    }
+
+    @Test
+    void testDeleteShelf_DefaultShelf() {
+        String shelfName = "Przeczytane";
+
+        assertThrows(BadRequestException.class, () -> {
+            bookService.deleteShelf(1L, shelfName);
+        });
+
+        verify(userBookRepository, never()).deleteAll(any());
+    }
+
+    @Test
+    void testGetUserBooks_Success() {
+        UserBook userBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName("Przeczytane")
+                .build();
+
+        when(userBookRepository.findByUserId(1L)).thenReturn(Arrays.asList(userBook));
+        when(bookMapper.toDto(book)).thenReturn(bookDto);
+        when(ratingRepository.getAverageRatingByBookId(1L)).thenReturn(4.5);
+
+        List<BookDto> result = bookService.getUserBooks(1L);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(userBookRepository).findByUserId(1L);
+    }
+
+    @Test
+    void testGetUserBooksByShelf_Success() {
+        String shelfName = "Przeczytane";
+        UserBook userBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(shelfName)
+                .build();
+
+        when(userBookRepository.findByUserIdAndShelfName(1L, shelfName))
+                .thenReturn(Arrays.asList(userBook));
+        when(bookMapper.toDto(book)).thenReturn(bookDto);
+        when(ratingRepository.getAverageRatingByBookId(1L)).thenReturn(4.5);
+
+        List<BookDto> result = bookService.getUserBooksByShelf(1L, shelfName);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(userBookRepository).findByUserIdAndShelfName(1L, shelfName);
+    }
+
+    @Test
+    void testMoveBookToShelf_Success() {
+        String oldShelf = "Przeczytane";
+        String newShelf = "Chcę przeczytać";
+        UserBook userBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(oldShelf)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, oldShelf))
+                .thenReturn(Optional.of(userBook));
+        when(userBookRepository.findByUserIdAndShelfName(1L, newShelf))
+                .thenReturn(Collections.emptyList());
+        when(userBookRepository.save(any(UserBook.class))).thenReturn(userBook);
+
+        bookService.moveBookToShelf(1L, oldShelf, newShelf);
+
+        verify(userBookRepository).findByUserIdAndBookIdAndShelfName(1L, 1L, oldShelf);
+        verify(userBookRepository).save(any(UserBook.class));
+    }
+
+    @Test
+    void testGetUserShelves_Success() {
+        java.util.ArrayList<String> shelves = new java.util.ArrayList<>();
+        shelves.add("Przeczytane");
+        shelves.add("Chcę przeczytać");
+        when(userBookRepository.findDistinctShelfNamesByUserId(1L))
+                .thenReturn(shelves);
+
+        List<String> result = bookService.getUserShelves(1L);
+
+        assertNotNull(result);
+        assertTrue(result.contains("Przeczytane"));
+        assertTrue(result.contains("Chcę przeczytać"));
+        verify(userBookRepository).findDistinctShelfNamesByUserId(1L);
+    }
+
+    @Test
+    void testGetUserShelves_Empty() {
+        when(userBookRepository.findDistinctShelfNamesByUserId(1L))
+                .thenReturn(Collections.emptyList());
+
+        List<String> result = bookService.getUserShelves(1L);
+
+        assertNotNull(result);
+        assertEquals(3, result.size()); // Should return default shelves
+        assertTrue(result.contains("Przeczytane"));
+        assertTrue(result.contains("Chcę przeczytać"));
+        assertTrue(result.contains("Teraz czytam"));
+    }
+
+    @Test
+    void testGetDefaultShelves() {
+        List<String> result = bookService.getDefaultShelves();
+
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        assertTrue(result.contains("Przeczytane"));
+        assertTrue(result.contains("Chcę przeczytać"));
+        assertTrue(result.contains("Teraz czytam"));
+    }
+
+    @Test
+    void testUpdateBook_WithAuthorFallback() {
+        BookDto updateDto = BookDto.builder()
+                .title("Updated Book")
+                .author("Fallback Author")
+                .build();
+
+        Book existingBook = Book.builder()
+                .id(1L)
+                .title("Original Book")
+                .build();
+
+        Book updatedBook = Book.builder()
+                .id(1L)
+                .title("Updated Book")
+                .author("Fallback Author")
+                .build();
+
+        BookDto outputDto = BookDto.builder()
+                .id(1L)
+                .title("Updated Book")
+                .author("Fallback Author")
+                .build();
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(existingBook));
+        when(bookRepository.save(any(Book.class))).thenReturn(updatedBook);
+        when(bookMapper.toDto(updatedBook)).thenReturn(outputDto);
+        when(ratingRepository.getAverageRatingByBookId(1L)).thenReturn(4.0);
+
+        BookDto result = bookService.updateBook(1L, updateDto);
+
+        assertNotNull(result);
+        assertEquals("Updated Book", result.getTitle());
+        verify(bookRepository).save(any(Book.class));
+    }
+
+    @Test
+    void testRemoveBookFromUserLibrary_Success() {
+        String shelfName = "Przeczytane";
+        UserBook userBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(shelfName)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, shelfName))
+                .thenReturn(Optional.of(userBook));
+        doNothing().when(userBookRepository).delete(any(UserBook.class));
+
+        bookService.removeBookFromUserLibrary(1L, shelfName);
+
+        verify(userRepository).findByUsername("testuser");
+        verify(userBookRepository).findByUserIdAndBookIdAndShelfName(1L, 1L, shelfName);
+        verify(userBookRepository).delete(userBook);
+    }
+
+    @Test
+    void testRemoveBookFromUserLibrary_DefaultShelf() {
+        UserBook userBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName("Moja biblioteczka")
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, "Moja biblioteczka"))
+                .thenReturn(Optional.of(userBook));
+        doNothing().when(userBookRepository).delete(any(UserBook.class));
+
+        bookService.removeBookFromUserLibrary(1L, null);
+
+        verify(userBookRepository).findByUserIdAndBookIdAndShelfName(1L, 1L, "Moja biblioteczka");
+        verify(userBookRepository).delete(userBook);
+    }
+
+    @Test
+    void testRemoveBookFromUserLibrary_NotFound() {
+        String shelfName = "Przeczytane";
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, shelfName))
+                .thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            bookService.removeBookFromUserLibrary(1L, shelfName);
+        });
+
+        verify(userBookRepository, never()).delete(any(UserBook.class));
+    }
+
+    @Test
+    void testMoveBookToShelf_BookAlreadyInTargetShelf() {
+        String oldShelf = "Przeczytane";
+        String newShelf = "Chcę przeczytać";
+        UserBook userBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(oldShelf)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, oldShelf))
+                .thenReturn(Optional.of(userBook));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, newShelf))
+                .thenReturn(Optional.of(UserBook.builder().build()));
+
+        assertThrows(ConflictException.class, () -> {
+            bookService.moveBookToShelf(1L, oldShelf, newShelf);
+        });
+
+        verify(userBookRepository, never()).save(any(UserBook.class));
+    }
+
+    @Test
+    void testSearchBooks_EmptyQuery() {
+        when(bookRepository.findAll()).thenReturn(Arrays.asList(book));
+        when(bookMapper.toDto(book)).thenReturn(bookDto);
+        when(ratingRepository.getAverageRatingByBookId(1L)).thenReturn(4.5);
+
+        List<BookDto> result = bookService.searchBooks("");
+
+        assertNotNull(result);
+        verify(bookRepository).findAll();
+    }
+
+    @Test
+    void testSearchBooks_NullQuery() {
+        when(bookRepository.findAll()).thenReturn(Arrays.asList(book));
+        when(bookMapper.toDto(book)).thenReturn(bookDto);
+        when(ratingRepository.getAverageRatingByBookId(1L)).thenReturn(4.5);
+
+        List<BookDto> result = bookService.searchBooks(null);
+
+        assertNotNull(result);
+        verify(bookRepository).findAll();
     }
 }

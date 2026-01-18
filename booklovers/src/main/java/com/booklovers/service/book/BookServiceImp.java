@@ -38,6 +38,7 @@ public class BookServiceImp implements BookService {
     private final ReviewRepository reviewRepository;
     
     @Override
+    @Transactional(readOnly = true)
     public List<BookDto> getAllBooks() {
         return bookRepository.findAll().stream()
                 .map(book -> {
@@ -50,6 +51,7 @@ public class BookServiceImp implements BookService {
     }
     
     @Override
+    @Transactional(readOnly = true)
     public Optional<BookDto> getBookById(Long id) {
         return bookRepository.findById(id)
                 .map(book -> {
@@ -135,6 +137,7 @@ public class BookServiceImp implements BookService {
     }
     
     @Override
+    @Transactional(readOnly = true)
     public List<BookDto> searchBooks(String query) {
         if (query == null || query.trim().isEmpty()) {
             return getAllBooks();
