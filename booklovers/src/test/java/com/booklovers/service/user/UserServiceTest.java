@@ -398,8 +398,11 @@ class UserServiceTest {
 
     @Test
     void testDeleteUser_Success() {
+        when(userRepository.existsById(1L)).thenReturn(true);
+        
         userService.deleteUser(1L);
         
+        verify(userRepository).existsById(1L);
         verify(userRepository).deleteById(1L);
     }
 

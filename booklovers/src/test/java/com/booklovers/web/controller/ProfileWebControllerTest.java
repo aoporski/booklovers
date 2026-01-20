@@ -4,6 +4,7 @@ import com.booklovers.dto.UserDto;
 import com.booklovers.dto.UserStatsDto;
 import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.service.export.ExportService;
+import com.booklovers.service.file.FileStorageService;
 import com.booklovers.service.import_.ImportService;
 import com.booklovers.service.stats.StatsService;
 import com.booklovers.service.user.UserService;
@@ -43,6 +44,9 @@ class ProfileWebControllerTest {
 
     @MockBean
     private StatsService statsService;
+
+    @MockBean
+    private FileStorageService fileStorageService;
 
     private UserDto userDto;
     private UserStatsDto userStatsDto;
@@ -179,7 +183,6 @@ class ProfileWebControllerTest {
 
         mockMvc.perform(multipart("/profile/import")
                         .file(file)
-                        .param("format", "json")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/profile"))
@@ -199,7 +202,6 @@ class ProfileWebControllerTest {
 
         mockMvc.perform(multipart("/profile/import")
                         .file(file)
-                        .param("format", "csv")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/profile"))
@@ -218,7 +220,6 @@ class ProfileWebControllerTest {
 
         mockMvc.perform(multipart("/profile/import")
                         .file(file)
-                        .param("format", "json")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/profile"))
@@ -237,7 +238,25 @@ class ProfileWebControllerTest {
 
         mockMvc.perform(multipart("/profile/import")
                         .file(file)
-                        .param("format", "xml")
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/profile"))
+                .andExpect(flash().attributeExists("error"));
+
+        verify(importService, never()).importUserDataFromJson(anyLong(), anyString());
+        verify(importService, never()).importUserDataFromCsv(anyLong(), anyString());
+    }
+    
+    @Test
+    @WithMockUser(username = "testuser")
+    void testImport_NoFileExtension() throws Exception {
+        when(userService.getCurrentUser()).thenReturn(userDto);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "data", "application/octet-stream", "some content".getBytes());
+
+        mockMvc.perform(multipart("/profile/import")
+                        .file(file)
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/profile"))
@@ -258,7 +277,6 @@ class ProfileWebControllerTest {
 
         mockMvc.perform(multipart("/profile/import")
                         .file(file)
-                        .param("format", "json")
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/profile"))

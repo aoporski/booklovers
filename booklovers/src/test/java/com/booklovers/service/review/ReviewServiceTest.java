@@ -192,7 +192,7 @@ class ReviewServiceTest {
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
-        when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
+        when(reviewRepository.findByIdWithUser(1L)).thenReturn(Optional.of(review));
         when(reviewRepository.save(any(Review.class))).thenReturn(updatedReview);
         when(reviewMapper.toDto(updatedReview)).thenReturn(outputDto);
 
@@ -200,7 +200,7 @@ class ReviewServiceTest {
 
         assertNotNull(result);
         assertEquals("Updated review", result.getContent());
-        verify(reviewRepository, times(1)).findById(1L);
+        verify(reviewRepository, times(1)).findByIdWithUser(1L);
         verify(reviewRepository, times(1)).save(any(Review.class));
     }
 
@@ -223,7 +223,7 @@ class ReviewServiceTest {
                 .build();
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
-        when(reviewRepository.findById(1L)).thenReturn(Optional.of(otherReview));
+        when(reviewRepository.findByIdWithUser(1L)).thenReturn(Optional.of(otherReview));
 
         assertThrows(ForbiddenException.class, () -> {
             reviewService.updateReview(1L, updateDto);
@@ -236,15 +236,12 @@ class ReviewServiceTest {
     void testDeleteReview_Success() {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
         when(reviewRepository.findByIdWithUser(1L)).thenReturn(Optional.of(review));
-        when(reviewRepository.deleteReviewById(1L)).thenReturn(1);
-        when(reviewRepository.existsById(1L)).thenReturn(false);
 
         reviewService.deleteReview(1L);
 
         verify(reviewRepository).findByIdWithUser(1L);
-        verify(reviewRepository).deleteReviewById(1L);
+        verify(reviewRepository).deleteById(1L);
         verify(reviewRepository).flush();
-        verify(reviewRepository).existsById(1L);
     }
 
     @Test
@@ -332,25 +329,25 @@ class ReviewServiceTest {
 
     @Test
     void testGetReviewById_Success() {
-        when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
+        when(reviewRepository.findByIdWithUser(1L)).thenReturn(Optional.of(review));
         when(reviewMapper.toDto(review)).thenReturn(reviewDto);
 
         Optional<ReviewDto> result = reviewService.getReviewById(1L);
 
         assertTrue(result.isPresent());
         assertEquals("Great book!", result.get().getContent());
-        verify(reviewRepository).findById(1L);
+        verify(reviewRepository).findByIdWithUser(1L);
         verify(reviewMapper).toDto(review);
     }
 
     @Test
     void testGetReviewById_NotFound() {
-        when(reviewRepository.findById(1L)).thenReturn(Optional.empty());
+        when(reviewRepository.findByIdWithUser(1L)).thenReturn(Optional.empty());
 
         Optional<ReviewDto> result = reviewService.getReviewById(1L);
 
         assertFalse(result.isPresent());
-        verify(reviewRepository).findById(1L);
+        verify(reviewRepository).findByIdWithUser(1L);
         verify(reviewMapper, never()).toDto(any());
     }
 
