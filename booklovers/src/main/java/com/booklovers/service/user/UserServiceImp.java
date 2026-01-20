@@ -7,6 +7,7 @@ import com.booklovers.exception.ConflictException;
 import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImp implements UserService {
@@ -28,10 +30,14 @@ public class UserServiceImp implements UserService {
     @Override
     @Transactional
     public UserDto register(RegisterRequest request) {
+        log.info("Rejestracja nowego użytkownika: username={}, email={}", request.getUsername(), request.getEmail());
+        
         if (userRepository.existsByUsername(request.getUsername())) {
+            log.warn("Próba rejestracji z istniejącym username: {}", request.getUsername());
             throw new ConflictException("Username already exists");
         }
         if (userRepository.existsByEmail(request.getEmail())) {
+            log.warn("Próba rejestracji z istniejącym email: {}", request.getEmail());
             throw new ConflictException("Email already exists");
         }
         
@@ -45,6 +51,7 @@ public class UserServiceImp implements UserService {
                 .build();
         
         User savedUser = userRepository.save(user);
+        log.info("Użytkownik zarejestrowany pomyślnie: userId={}, username={}", savedUser.getId(), savedUser.getUsername());
         return userMapper.toDto(savedUser);
     }
     
@@ -60,38 +67,54 @@ public class UserServiceImp implements UserService {
     
     @Override
     public UserDto getCurrentUser() {
+        log.debug("Pobieranie aktualnego użytkownika");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
+        log.debug("Aktualny użytkownik: username={}", username);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User", username));
+                .orElseThrow(() -> {
+                    log.error("Nie znaleziono użytkownika: username={}", username);
+                    return new ResourceNotFoundException("User", username);
+                });
         return userMapper.toDto(user);
     }
     
     @Override
     @Transactional
     public UserDto updateUser(UserDto userDto) {
+        log.info("Aktualizacja danych użytkownika");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
+        log.debug("Aktualizacja użytkownika: username={}", username);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User", username));
+                .orElseThrow(() -> {
+                    log.error("Nie znaleziono użytkownika do aktualizacji: username={}", username);
+                    return new ResourceNotFoundException("User", username);
+                });
         
         if (userDto.getFirstName() != null) {
+            log.debug("Aktualizacja firstName dla użytkownika: userId={}", user.getId());
             user.setFirstName(userDto.getFirstName());
         }
         if (userDto.getLastName() != null) {
+            log.debug("Aktualizacja lastName dla użytkownika: userId={}", user.getId());
             user.setLastName(userDto.getLastName());
         }
         if (userDto.getBio() != null) {
+            log.debug("Aktualizacja bio dla użytkownika: userId={}", user.getId());
             user.setBio(userDto.getBio());
         }
         if (userDto.getAvatarUrl() != null) {
+            log.debug("Aktualizacja avatarUrl dla użytkownika: userId={}", user.getId());
             user.setAvatarUrl(userDto.getAvatarUrl());
         }
         if (userDto.getPassword() != null && !userDto.getPassword().isEmpty()) {
+            log.debug("Aktualizacja hasła dla użytkownika: userId={}", user.getId());
             user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         }
         
         User updatedUser = userRepository.save(user);
+        log.info("Dane użytkownika zaktualizowane pomyślnie: userId={}, username={}", updatedUser.getId(), updatedUser.getUsername());
         return userMapper.toDto(updatedUser);
     }
     
@@ -105,26 +128,42 @@ public class UserServiceImp implements UserService {
     @Override
     @Transactional
     public void deleteUser(Long id) {
+        log.info("Usuwanie użytkownika: userId={}", id);
+        if (!userRepository.existsById(id)) {
+            log.warn("Próba usunięcia nieistniejącego użytkownika: userId={}", id);
+            throw new ResourceNotFoundException("User", id);
+        }
         userRepository.deleteById(id);
+        log.info("Użytkownik usunięty pomyślnie: userId={}", id);
     }
     
     @Override
     @Transactional
     public UserDto blockUser(Long id) {
+        log.info("Blokowanie użytkownika: userId={}", id);
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+                .orElseThrow(() -> {
+                    log.error("Nie znaleziono użytkownika do zablokowania: userId={}", id);
+                    return new ResourceNotFoundException("User", id);
+                });
         user.setIsBlocked(true);
         User saved = userRepository.save(user);
+        log.info("Użytkownik zablokowany pomyślnie: userId={}, username={}", saved.getId(), saved.getUsername());
         return userMapper.toDto(saved);
     }
     
     @Override
     @Transactional
     public UserDto unblockUser(Long id) {
+        log.info("Odblokowywanie użytkownika: userId={}", id);
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+                .orElseThrow(() -> {
+                    log.error("Nie znaleziono użytkownika do odblokowania: userId={}", id);
+                    return new ResourceNotFoundException("User", id);
+                });
         user.setIsBlocked(false);
         User saved = userRepository.save(user);
+        log.info("Użytkownik odblokowany pomyślnie: userId={}, username={}", saved.getId(), saved.getUsername());
         return userMapper.toDto(saved);
     }
 }

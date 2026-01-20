@@ -10,14 +10,17 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -34,7 +37,15 @@ public class AuthController {
     })
     @PostMapping("/register")
     public ResponseEntity<UserDto> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.register(request));
+        log.info("Próba rejestracji użytkownika: username={}, email={}", request.getUsername(), request.getEmail());
+        try {
+            UserDto user = userService.register(request);
+            log.info("Rejestracja zakończona sukcesem: userId={}, username={}", user.getId(), user.getUsername());
+            return ResponseEntity.status(HttpStatus.CREATED).body(user);
+        } catch (Exception e) {
+            log.error("Błąd podczas rejestracji użytkownika: username={}, error={}", request.getUsername(), e.getMessage(), e);
+            throw e;
+        }
     }
     
     @Operation(summary = "Logowanie użytkownika", description = "Uwierzytelnia użytkownika i zwraca token sesji")
@@ -44,8 +55,19 @@ public class AuthController {
     })
     @PostMapping("/login")
     public ResponseEntity<String> login(@Valid @RequestBody LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        return ResponseEntity.ok("Login successful");
+        log.info("Próba logowania użytkownika: username={}", request.getUsername());
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            log.info("Logowanie zakończone sukcesem: username={}", request.getUsername());
+            return ResponseEntity.ok("Login successful");
+        } catch (BadCredentialsException e) {
+            log.warn("Nieprawidłowe dane logowania: username={}", request.getUsername());
+            throw e;
+        } catch (Exception e) {
+            log.error("Błąd podczas logowania: username={}, error={}", request.getUsername(), e.getMessage(), e);
+            throw e;
+        }
     }
 }

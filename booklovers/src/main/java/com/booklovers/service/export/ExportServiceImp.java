@@ -16,11 +16,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExportServiceImp implements ExportService {
@@ -44,14 +46,22 @@ public class ExportServiceImp implements ExportService {
     
     @Override
     public UserDataExportDto exportUserData(Long userId) {
+        log.info("Eksport danych użytkownika: userId={}", userId);
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+                .orElseThrow(() -> {
+                    log.error("Nie znaleziono użytkownika podczas eksportu danych: userId={}", userId);
+                    return new ResourceNotFoundException("User", userId);
+                });
         
+        log.debug("Pobieranie danych użytkownika do eksportu: userId={}", userId);
         UserDto userDto = userMapper.toDto(user);
         List<BookDto> books = bookService.getUserBooks(userId);
         List<ReviewDto> reviews = reviewService.getReviewsByUserId(userId);
         List<RatingDto> ratings = ratingService.getRatingsByUserId(userId);
         List<String> shelves = bookService.getUserShelves(userId);
+        
+        log.debug("Dane użytkownika pobrane: userId={}, books={}, reviews={}, ratings={}, shelves={}", 
+                userId, books.size(), reviews.size(), ratings.size(), shelves.size());
         
         List<UserBookDto> userBooks = userBookRepository.findByUserId(userId).stream()
                 .filter(ub -> ub.getBook() != null)
@@ -67,6 +77,8 @@ public class ExportServiceImp implements ExportService {
                         .build())
                 .collect(Collectors.toList());
         
+        log.info("Eksport danych użytkownika zakończony pomyślnie: userId={}, userBooks={}", 
+                userId, userBooks.size());
         return UserDataExportDto.builder()
                 .user(userDto)
                 .books(books)
@@ -79,17 +91,23 @@ public class ExportServiceImp implements ExportService {
     
     @Override
     public String exportUserDataAsJson(Long userId) {
+        log.info("Eksport danych użytkownika do JSON: userId={}", userId);
         try {
             UserDataExportDto data = exportUserData(userId);
             ObjectMapper configuredMapper = getConfiguredObjectMapper();
-            return configuredMapper.writerWithDefaultPrettyPrinter().writeValueAsString(data);
+            String json = configuredMapper.writerWithDefaultPrettyPrinter().writeValueAsString(data);
+            log.info("Eksport do JSON zakończony pomyślnie: userId={}, size={} bytes", userId, json.length());
+            return json;
         } catch (Exception e) {
+            log.error("Błąd podczas eksportu danych użytkownika do JSON: userId={}, error={}", 
+                    userId, e.getMessage(), e);
             throw new com.booklovers.exception.BadRequestException("Error exporting user data", e);
         }
     }
     
     @Override
     public String exportUserDataAsCsv(Long userId) {
+        log.info("Eksport danych użytkownika do CSV: userId={}", userId);
         UserDataExportDto data = exportUserData(userId);
         StringBuilder csv = new StringBuilder();
         
@@ -130,6 +148,8 @@ public class ExportServiceImp implements ExportService {
             csv.append(rating.getCreatedAt() != null ? rating.getCreatedAt().toString() : "").append("\n");
         }
         
-        return csv.toString();
+        String csvResult = csv.toString();
+        log.info("Eksport do CSV zakończony pomyślnie: userId={}, size={} bytes", userId, csvResult.length());
+        return csvResult;
     }
 }

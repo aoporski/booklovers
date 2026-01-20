@@ -38,16 +38,25 @@ public class ReviewServiceImp implements ReviewService {
     @Override
     @Transactional
     public ReviewDto createReview(Long bookId, ReviewDto reviewDto) {
+        log.info("Tworzenie recenzji: bookId={}", bookId);
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
+        log.debug("Użytkownik tworzący recenzję: username={}", username);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User", username));
+                .orElseThrow(() -> {
+                    log.error("Nie znaleziono użytkownika podczas tworzenia recenzji: username={}", username);
+                    return new ResourceNotFoundException("User", username);
+                });
         
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new ResourceNotFoundException("Book", bookId));
+                .orElseThrow(() -> {
+                    log.error("Nie znaleziono książki podczas tworzenia recenzji: bookId={}", bookId);
+                    return new ResourceNotFoundException("Book", bookId);
+                });
         
         Optional<Review> existingReview = reviewRepository.findByUserIdAndBookId(user.getId(), bookId);
         if (existingReview.isPresent()) {
+            log.warn("Próba utworzenia duplikatu recenzji: userId={}, bookId={}", user.getId(), bookId);
             throw new ConflictException("User already has a review for this book");
         }
         
@@ -64,6 +73,8 @@ public class ReviewServiceImp implements ReviewService {
         Review savedReview = reviewRepository.save(review);
         reviewRepository.flush();
         
+        log.info("Recenzja utworzona pomyślnie: reviewId={}, userId={}, bookId={}", 
+                savedReview.getId(), user.getId(), bookId);
         return reviewMapper.toDto(savedReview);
     }
     
@@ -81,15 +92,25 @@ public class ReviewServiceImp implements ReviewService {
     @Override
     @Transactional
     public ReviewDto updateReview(Long id, ReviewDto reviewDto) {
+        log.info("Aktualizacja recenzji: reviewId={}", id);
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
+        log.debug("Użytkownik aktualizujący recenzję: username={}, reviewId={}", username, id);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User", username));
+                .orElseThrow(() -> {
+                    log.error("Nie znaleziono użytkownika podczas aktualizacji recenzji: username={}", username);
+                    return new ResourceNotFoundException("User", username);
+                });
         
         Review review = reviewRepository.findByIdWithUser(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Review", id));
+                .orElseThrow(() -> {
+                    log.error("Nie znaleziono recenzji do aktualizacji: reviewId={}", id);
+                    return new ResourceNotFoundException("Review", id);
+                });
         
         if (!review.getUser().getId().equals(user.getId())) {
+            log.warn("Próba aktualizacji cudzej recenzji: userId={}, reviewId={}, reviewOwnerId={}", 
+                    user.getId(), id, review.getUser().getId());
             throw new ForbiddenException("You can only update your own reviews");
         }
         
@@ -98,20 +119,26 @@ public class ReviewServiceImp implements ReviewService {
         }
         
         Review updatedReview = reviewRepository.save(review);
+        log.info("Recenzja zaktualizowana pomyślnie: reviewId={}, userId={}", updatedReview.getId(), user.getId());
         return reviewMapper.toDto(updatedReview);
     }
     
     @Override
     @Transactional
     public ReviewDto updateReviewAsAdmin(Long id, ReviewDto reviewDto) {
+        log.info("Aktualizacja recenzji przez administratora: reviewId={}", id);
         Review review = reviewRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Review", id));
+                .orElseThrow(() -> {
+                    log.error("Nie znaleziono recenzji do aktualizacji przez admina: reviewId={}", id);
+                    return new ResourceNotFoundException("Review", id);
+                });
         
         if (reviewDto.getContent() != null) {
             review.setContent(reviewDto.getContent());
         }
         
         Review updatedReview = reviewRepository.save(review);
+        log.info("Recenzja zaktualizowana przez administratora: reviewId={}", updatedReview.getId());
         return reviewMapper.toDto(updatedReview);
     }
     
@@ -126,50 +153,31 @@ public class ReviewServiceImp implements ReviewService {
         Review review = reviewRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Review", id));
         
-        log.error("=== ReviewService.deleteReview START: reviewId={}, currentUserId={}, reviewUserId={} ===", id, user.getId(), review.getUser().getId());
+        log.info("Usuwanie recenzji: reviewId={}, userId={}", id, user.getId());
         
         if (!review.getUser().getId().equals(user.getId())) {
-            log.error("=== User {} attempted to delete review {} owned by user {} ===", user.getId(), id, review.getUser().getId());
+            log.warn("Próba usunięcia cudzej recenzji: userId={}, reviewId={}, reviewOwnerId={}", 
+                    user.getId(), id, review.getUser().getId());
             throw new ForbiddenException("You can only delete your own reviews");
         }
         
-        log.error("=== About to delete review {} using native query ===", id);
-        int deletedCount = reviewRepository.deleteReviewById(id);
+        reviewRepository.deleteById(id);
         reviewRepository.flush();
-        
-        log.error("=== Native delete query executed. Deleted count: {} ===", deletedCount);
-        
-        boolean stillExists = reviewRepository.existsById(id);
-        log.error("=== Review {} deleted. Still exists: {} ===", id, stillExists);
-        
-        if (stillExists) {
-            log.error("=== Review {} was not deleted by native query! Attempting deleteById. ===", id);
-            reviewRepository.deleteById(id);
-            reviewRepository.flush();
-            
-            stillExists = reviewRepository.existsById(id);
-            if (stillExists) {
-                log.error("=== Review {} still exists after deleteById! Attempting delete(review). ===", id);
-                reviewRepository.delete(review);
-                reviewRepository.flush();
-                
-                stillExists = reviewRepository.existsById(id);
-                log.error("=== Review {} still exists after delete(review): {} ===", id, stillExists);
-            }
-        }
-        
-        log.error("=== ReviewService.deleteReview END: reviewId={} ===", id);
+        log.info("Recenzja usunięta pomyślnie: reviewId={}, userId={}", id, user.getId());
     }
     
     @Override
     @Transactional
     public void deleteReviewAsAdmin(Long id) {
+        log.info("Usuwanie recenzji przez administratora: reviewId={}", id);
         if (!reviewRepository.existsById(id)) {
+            log.warn("Próba usunięcia nieistniejącej recenzji przez admina: reviewId={}", id);
             throw new ResourceNotFoundException("Review", id);
         }
         
         reviewRepository.deleteById(id);
         reviewRepository.flush();
+        log.info("Recenzja usunięta przez administratora: reviewId={}", id);
     }
     
     @Override

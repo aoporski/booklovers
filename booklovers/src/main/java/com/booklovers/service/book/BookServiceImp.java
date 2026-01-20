@@ -16,6 +16,7 @@ import com.booklovers.repository.ReviewRepository;
 import com.booklovers.repository.UserBookRepository;
 import com.booklovers.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookServiceImp implements BookService {
@@ -40,7 +42,8 @@ public class BookServiceImp implements BookService {
     @Override
     @Transactional(readOnly = true)
     public List<BookDto> getAllBooks() {
-        return bookRepository.findAll().stream()
+        log.debug("Pobieranie wszystkich książek");
+        List<BookDto> books = bookRepository.findAll().stream()
                 .map(book -> {
                     BookDto dto = bookMapper.toDto(book);
                     Double avgRating = ratingRepository.getAverageRatingByBookId(book.getId());
@@ -48,34 +51,49 @@ public class BookServiceImp implements BookService {
                     return dto;
                 })
                 .collect(Collectors.toList());
+        log.info("Pobrano {} książek", books.size());
+        return books;
     }
     
     @Override
     @Transactional(readOnly = true)
     public Optional<BookDto> getBookById(Long id) {
-        return bookRepository.findById(id)
-                .map(book -> {
-                    BookDto dto = bookMapper.toDto(book);
+        log.debug("Pobieranie książki: bookId={}", id);
+        Optional<BookDto> book = bookRepository.findById(id)
+                .map(b -> {
+                    BookDto dto = bookMapper.toDto(b);
                     Double avgRating = ratingRepository.getAverageRatingByBookId(id);
                     dto.setAverageRating(avgRating != null ? avgRating : 0.0);
                     return dto;
                 });
+        if (book.isEmpty()) {
+            log.warn("Nie znaleziono książki: bookId={}", id);
+        } else {
+            log.debug("Znaleziono książkę: bookId={}, title={}", id, book.get().getTitle());
+        }
+        return book;
     }
     
     @Override
     @Transactional
     public BookDto createBook(BookDto bookDto) {
+        log.info("Tworzenie nowej książki: title={}, authorId={}", bookDto.getTitle(), bookDto.getAuthorId());
         Book book = bookMapper.toEntity(bookDto);
         
         // Jeśli podano authorId, przypisz autora do książki
         if (bookDto.getAuthorId() != null) {
+            log.debug("Przypisywanie autora do książki: authorId={}", bookDto.getAuthorId());
             Author author = authorRepository.findById(bookDto.getAuthorId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Author", bookDto.getAuthorId()));
+                    .orElseThrow(() -> {
+                        log.error("Nie znaleziono autora: authorId={}", bookDto.getAuthorId());
+                        return new ResourceNotFoundException("Author", bookDto.getAuthorId());
+                    });
             book.setAuthorEntity(author);
             book.setAuthor(author.getFullName());
         }
         
         Book savedBook = bookRepository.save(book);
+        log.info("Książka utworzona pomyślnie: bookId={}, title={}", savedBook.getId(), savedBook.getTitle());
         return bookMapper.toDto(savedBook);
     }
     
