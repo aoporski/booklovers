@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/**").authenticated()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/my-books", "/profile", "/api/export/**").authenticated()
+                .requestMatchers("/my-books", "/profile", "/profile/avatar", "/profile/avatar/**", "/api/export/**").authenticated()
                 .anyRequest().authenticated()
             )
             .headers(headers -> headers.frameOptions().sameOrigin())

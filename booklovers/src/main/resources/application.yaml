@@ -18,6 +18,9 @@ springdoc:
     path: /swagger-ui.html
     enabled: true
 
+file:
+  upload-dir: uploads
+
 ---
 # H2 Database Configuration (default)
 # spring:

@@ -66,6 +66,13 @@ public class UserServiceImp implements UserService {
     }
     
     @Override
+    public Optional<UserDto> findByIdDto(Long id) {
+        log.debug("Pobieranie użytkownika jako DTO: userId={}", id);
+        return userRepository.findById(id)
+                .map(userMapper::toDto);
+    }
+    
+    @Override
     public UserDto getCurrentUser() {
         log.debug("Pobieranie aktualnego użytkownika");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

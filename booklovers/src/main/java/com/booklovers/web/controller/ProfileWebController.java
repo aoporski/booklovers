@@ -3,11 +3,13 @@ package com.booklovers.web.controller;
 import com.booklovers.dto.UserDto;
 import com.booklovers.dto.UserStatsDto;
 import com.booklovers.service.export.ExportService;
+import com.booklovers.service.file.FileStorageService;
 import com.booklovers.service.import_.ImportService;
 import com.booklovers.service.stats.StatsService;
 import com.booklovers.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +32,7 @@ public class ProfileWebController {
     private final ExportService exportService;
     private final ImportService importService;
     private final StatsService statsService;
+    private final FileStorageService fileStorageService;
     
     @GetMapping
     public String profilePage(Model model) {
@@ -46,15 +49,148 @@ public class ProfileWebController {
     }
     
     @PostMapping
-    public String updateProfile(UserDto userDto, RedirectAttributes redirectAttributes) {
+    public String updateProfile(
+            @ModelAttribute UserDto userDto,
+            @RequestParam(value = "avatarFile", required = false) MultipartFile avatarFile,
+            RedirectAttributes redirectAttributes) {
         try {
+            log.info("Aktualizacja profilu użytkownika");
+            
+            // Pobierz aktualnego użytkownika, aby zachować istniejące dane
+            UserDto currentUser = userService.getCurrentUser();
+            
+            // Jeśli przesłano plik, zapisz go i ustaw ścieżkę
+            if (avatarFile != null && !avatarFile.isEmpty()) {
+                log.info("Przesyłanie zdjęcia profilowego: originalFilename={}, size={}", 
+                        avatarFile.getOriginalFilename(), avatarFile.getSize());
+                
+                // Usuń stare zdjęcie tylko jeśli to plik lokalny (nie URL)
+                if (currentUser.getAvatarUrl() != null && !currentUser.getAvatarUrl().isEmpty() 
+                        && !currentUser.getAvatarUrl().startsWith("http")) {
+                    try {
+                        String oldPath = currentUser.getAvatarUrl();
+                        if (oldPath.contains("/")) {
+                            String[] parts = oldPath.split("/");
+                            if (parts.length >= 2) {
+                                fileStorageService.deleteFile(parts[parts.length - 1], parts[parts.length - 2]);
+                                log.debug("Stare zdjęcie profilowe usunięte: path={}", oldPath);
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("Nie można usunąć starego zdjęcia profilowego", e);
+                    }
+                }
+                
+                // Zapisz nowe zdjęcie
+                String filePath = fileStorageService.storeFile(avatarFile, "avatars");
+                userDto.setAvatarUrl(filePath);
+                log.info("Zdjęcie profilowe zapisane: path={}", filePath);
+            } else {
+                // Jeśli nie przesłano pliku, zachowaj istniejące avatarUrl
+                userDto.setAvatarUrl(currentUser.getAvatarUrl());
+            }
+            
             userService.updateUser(userDto);
             redirectAttributes.addFlashAttribute("success", "Profil został zaktualizowany pomyślnie!");
             return "redirect:/profile";
         } catch (Exception e) {
-            log.error("Error updating profile: ", e);
+            log.error("Błąd podczas aktualizacji profilu", e);
             redirectAttributes.addFlashAttribute("error", "Wystąpił błąd podczas aktualizacji profilu: " + e.getMessage());
             return "redirect:/profile";
+        }
+    }
+    
+    @GetMapping("/avatar")
+    public ResponseEntity<Resource> getAvatar() {
+        try {
+            UserDto currentUser = userService.getCurrentUser();
+            String avatarUrl = currentUser.getAvatarUrl();
+            
+            if (avatarUrl == null || avatarUrl.isEmpty()) {
+                log.debug("Użytkownik nie ma zdjęcia profilowego");
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Jeśli to URL zewnętrzny, przekieruj
+            if (avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://")) {
+                return ResponseEntity.status(302)
+                        .header(HttpHeaders.LOCATION, avatarUrl)
+                        .build();
+            }
+            
+            // Jeśli to plik lokalny, pobierz go
+            String[] parts = avatarUrl.split("/");
+            if (parts.length < 2) {
+                log.warn("Nieprawidłowa ścieżka do zdjęcia profilowego: {}", avatarUrl);
+                return ResponseEntity.notFound().build();
+            }
+            
+            String filename = parts[parts.length - 1];
+            String subdirectory = parts[parts.length - 2];
+            
+            Resource resource = fileStorageService.loadFileAsResource(filename, subdirectory);
+            String contentType = "image/jpeg"; // Domyślnie JPEG, można rozszerzyć
+            
+            if (filename.toLowerCase().endsWith(".png")) {
+                contentType = "image/png";
+            } else if (filename.toLowerCase().endsWith(".gif")) {
+                contentType = "image/gif";
+            }
+            
+            log.debug("Pobieranie zdjęcia profilowego: filename={}, subdirectory={}", filename, subdirectory);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            log.error("Błąd podczas pobierania zdjęcia profilowego", e);
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    @GetMapping("/avatar/{userId}")
+    public ResponseEntity<Resource> getUserAvatar(@PathVariable Long userId) {
+        try {
+            UserDto user = userService.findByIdDto(userId)
+                    .orElseThrow(() -> new com.booklovers.exception.ResourceNotFoundException("User", userId));
+            
+            String avatarUrl = user.getAvatarUrl();
+            if (avatarUrl == null || avatarUrl.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Jeśli to URL zewnętrzny, przekieruj
+            if (avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://")) {
+                return ResponseEntity.status(302)
+                        .header(HttpHeaders.LOCATION, avatarUrl)
+                        .build();
+            }
+            
+            // Jeśli to plik lokalny, pobierz go
+            String[] parts = avatarUrl.split("/");
+            if (parts.length < 2) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            String filename = parts[parts.length - 1];
+            String subdirectory = parts[parts.length - 2];
+            
+            Resource resource = fileStorageService.loadFileAsResource(filename, subdirectory);
+            String contentType = "image/jpeg";
+            
+            if (filename.toLowerCase().endsWith(".png")) {
+                contentType = "image/png";
+            } else if (filename.toLowerCase().endsWith(".gif")) {
+                contentType = "image/gif";
+            }
+            
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            log.error("Błąd podczas pobierania zdjęcia profilowego użytkownika: userId={}", userId, e);
+            return ResponseEntity.notFound().build();
         }
     }
     
@@ -98,7 +234,6 @@ public class ProfileWebController {
     
     @PostMapping("/import")
     public String importData(@RequestParam("file") MultipartFile file,
-                           @RequestParam("format") String format,
                            RedirectAttributes redirectAttributes) {
         try {
             if (file.isEmpty()) {
@@ -106,23 +241,49 @@ public class ProfileWebController {
                 return "redirect:/profile";
             }
             
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || originalFilename.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Nie można określić nazwy pliku");
+                return "redirect:/profile";
+            }
+            
+            String extension = getFileExtension(originalFilename);
+            if (extension == null) {
+                redirectAttributes.addFlashAttribute("error", "Nie można określić formatu pliku. Użyj pliku .json lub .csv");
+                return "redirect:/profile";
+            }
+            
             UserDto currentUser = userService.getCurrentUser();
             String content = new String(file.getBytes(), StandardCharsets.UTF_8);
             
-            if ("json".equalsIgnoreCase(format)) {
+            log.info("Import danych użytkownika: userId={}, format={}, filename={}", 
+                    currentUser.getId(), extension, originalFilename);
+            
+            if ("json".equalsIgnoreCase(extension)) {
                 importService.importUserDataFromJson(currentUser.getId(), content);
-            } else if ("csv".equalsIgnoreCase(format)) {
+            } else if ("csv".equalsIgnoreCase(extension)) {
                 importService.importUserDataFromCsv(currentUser.getId(), content);
             } else {
-                redirectAttributes.addFlashAttribute("error", "Nieobsługiwany format pliku");
+                redirectAttributes.addFlashAttribute("error", "Nieobsługiwany format pliku. Obsługiwane formaty: .json, .csv");
                 return "redirect:/profile";
             }
             
             redirectAttributes.addFlashAttribute("success", "Dane zostały zaimportowane pomyślnie!");
         } catch (Exception e) {
-            log.error("Error importing data: ", e);
+            log.error("Błąd podczas importu danych", e);
             redirectAttributes.addFlashAttribute("error", "Błąd podczas importu danych: " + e.getMessage());
         }
         return "redirect:/profile";
+    }
+    
+    private String getFileExtension(String filename) {
+        if (filename == null || filename.isEmpty()) {
+            return null;
+        }
+        int lastDotIndex = filename.lastIndexOf('.');
+        if (lastDotIndex == -1 || lastDotIndex == filename.length() - 1) {
+            return null;
+        }
+        return filename.substring(lastDotIndex + 1).toLowerCase();
     }
 }

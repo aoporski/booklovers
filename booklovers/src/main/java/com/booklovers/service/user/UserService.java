@@ -11,6 +11,7 @@ public interface UserService {
     UserDto register(RegisterRequest request);
     Optional<User> findByUsername(String username);
     Optional<User> findById(Long id);
+    Optional<UserDto> findByIdDto(Long id);
     UserDto getCurrentUser();
     UserDto updateUser(UserDto userDto);
     List<UserDto> getAllUsers();
