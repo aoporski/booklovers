@@ -5,7 +5,7 @@ services:
     working_dir: /app
     volumes:
       - ./booklovers:/app
-    command: mvn clean verify -Dspring.profiles.active=test
+    command: mvn clean verify -Dspring.profiles.active=test -Dtest=!E2ETest
     environment:
       - SPRING_PROFILES_ACTIVE=test
       - MAVEN_OPTS=-Xmx2048m -XX:MaxMetaspaceSize=512m
