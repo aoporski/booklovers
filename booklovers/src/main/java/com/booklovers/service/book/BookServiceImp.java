@@ -80,7 +80,6 @@ public class BookServiceImp implements BookService {
         log.info("Tworzenie nowej książki: title={}, authorId={}", bookDto.getTitle(), bookDto.getAuthorId());
         Book book = bookMapper.toEntity(bookDto);
         
-        // Jeśli podano authorId, przypisz autora do książki
         if (bookDto.getAuthorId() != null) {
             log.debug("Przypisywanie autora do książki: authorId={}", bookDto.getAuthorId());
             Author author = authorRepository.findById(bookDto.getAuthorId())
@@ -107,15 +106,12 @@ public class BookServiceImp implements BookService {
             book.setTitle(bookDto.getTitle());
         }
         
-        // Jeśli podano authorId, przypisz autora do książki
         if (bookDto.getAuthorId() != null) {
             Author author = authorRepository.findById(bookDto.getAuthorId())
                     .orElseThrow(() -> new ResourceNotFoundException("Author", bookDto.getAuthorId()));
             book.setAuthorEntity(author);
-            // Ustaw również pole author jako pełne imię autora dla kompatybilności wstecznej
             book.setAuthor(author.getFullName());
         } else if (bookDto.getAuthor() != null) {
-            // Fallback: jeśli nie podano authorId, użyj pola author
             book.setAuthor(bookDto.getAuthor());
         }
         

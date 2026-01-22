@@ -7,14 +7,19 @@ import com.booklovers.entity.Book;
 import com.booklovers.entity.User;
 import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.repository.*;
+import lombok.Builder;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -27,42 +32,69 @@ public class StatsServiceImp implements StatsService {
     private final ReviewRepository reviewRepository;
     private final RatingRepository ratingRepository;
     private final com.booklovers.repository.UserBookRepository userBookRepository;
+    private final JdbcTemplate jdbcTemplate;
     
     @Override
     public StatsDto getGlobalStats() {
         log.info("Pobieranie globalnych statystyk");
-        long totalBooks = bookRepository.count();
-        long totalUsers = userRepository.count();
-        long totalReviews = reviewRepository.count();
-        long totalRatings = ratingRepository.count();
+        
+        Long totalBooks = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM books", Long.class);
+        Long totalUsers = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users", Long.class);
+        Long totalReviews = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM reviews", Long.class);
+        Long totalRatings = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ratings", Long.class);
         
         log.debug("Statystyki: books={}, users={}, reviews={}, ratings={}", 
                 totalBooks, totalUsers, totalReviews, totalRatings);
         
-        Double averageRating = ratingRepository.findAll().stream()
-                .mapToInt(r -> r.getValue())
-                .average()
-                .orElse(0.0);
+
+        Double averageRating = jdbcTemplate.queryForObject(
+            "SELECT AVG(rating_value) FROM ratings", 
+            Double.class
+        );
+        if (averageRating == null) {
+            averageRating = 0.0;
+        }
         
-        Map<String, Long> booksByGenre = new HashMap<>();
-        Map<String, Long> topAuthors = new HashMap<>();
+        String sql = "SELECT rating_value, COUNT(*) as count FROM ratings GROUP BY rating_value";
+        List<RatingDistributionRow> rows = jdbcTemplate.query(sql, new RatingDistributionRowMapper());
+        
         Map<Integer, Long> ratingsDistribution = new HashMap<>();
-        
-        ratingRepository.findAll().forEach(rating -> {
-            ratingsDistribution.merge(rating.getValue(), 1L, Long::sum);
-        });
+        for (RatingDistributionRow row : rows) {
+            ratingsDistribution.put(row.getRatingValue(), row.getCount());
+        }
+        for (int i = 1; i <= 5; i++) {
+            ratingsDistribution.putIfAbsent(i, 0L);
+        }
         
         log.info("Globalne statystyki pobrane: averageRating={}", averageRating);
         return StatsDto.builder()
-                .totalBooks((int) totalBooks)
-                .totalUsers((int) totalUsers)
-                .totalReviews((int) totalReviews)
-                .totalRatings((int) totalRatings)
+                .totalBooks(totalBooks != null ? totalBooks.intValue() : 0)
+                .totalUsers(totalUsers != null ? totalUsers.intValue() : 0)
+                .totalReviews(totalReviews != null ? totalReviews.intValue() : 0)
+                .totalRatings(totalRatings != null ? totalRatings.intValue() : 0)
                 .averageRating(averageRating)
-                .booksByGenre(booksByGenre)
-                .topAuthors(topAuthors)
+                .booksByGenre(new HashMap<>())
+                .topAuthors(new HashMap<>())
                 .ratingsDistribution(ratingsDistribution)
                 .build();
+    }
+    
+
+    private static class RatingDistributionRowMapper implements RowMapper<RatingDistributionRow> {
+        @Override
+        public RatingDistributionRow mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return RatingDistributionRow.builder()
+                .ratingValue(rs.getInt("rating_value"))
+                .count(rs.getLong("count"))
+                .build();
+        }
+    }
+    
+    @Builder
+    @Data
+    private static class RatingDistributionRow {
+        private Integer ratingValue;
+        private Long count;
     }
     
     @Override

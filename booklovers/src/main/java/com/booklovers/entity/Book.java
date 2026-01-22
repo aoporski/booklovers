@@ -30,7 +30,6 @@ public class Book {
     @Column(nullable = false)
     private String author;
     
-    // Opcjonalna relacja z encją Author (może być null dla kompatybilności wstecznej)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id")
     private Author authorEntity;

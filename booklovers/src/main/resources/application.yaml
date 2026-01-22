@@ -46,7 +46,6 @@ file:
 #       ddl-auto: create-drop
 
 ---
-# Oracle Database Configuration
 spring:
   config:
     activate:

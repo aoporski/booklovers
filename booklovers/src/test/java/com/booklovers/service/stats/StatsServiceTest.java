@@ -14,14 +14,23 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.*;
 
@@ -42,6 +51,9 @@ class StatsServiceTest {
 
     @Mock
     private UserBookRepository userBookRepository;
+
+    @Mock
+    private JdbcTemplate jdbcTemplate;
 
     @InjectMocks
     private StatsServiceImp statsService;
@@ -71,11 +83,21 @@ class StatsServiceTest {
 
     @Test
     void testGetGlobalStats_Success() {
-        when(bookRepository.count()).thenReturn(10L);
-        when(userRepository.count()).thenReturn(5L);
-        when(reviewRepository.count()).thenReturn(20L);
-        when(ratingRepository.count()).thenReturn(15L);
-        when(ratingRepository.findAll()).thenReturn(Arrays.asList(rating));
+        when(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM books", Long.class)).thenReturn(10L);
+        when(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users", Long.class)).thenReturn(5L);
+        when(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM reviews", Long.class)).thenReturn(20L);
+        when(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ratings", Long.class)).thenReturn(15L);
+        
+        when(jdbcTemplate.queryForObject("SELECT AVG(rating_value) FROM ratings", Double.class)).thenReturn(5.0);
+        
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class))).thenAnswer(invocation -> {
+            RowMapper<?> mapper = invocation.getArgument(1);
+            ResultSet rs = mock(ResultSet.class);
+            when(rs.getInt("rating_value")).thenReturn(5);
+            when(rs.getLong("count")).thenReturn(15L);
+            Object row = mapper.mapRow(rs, 0);
+            return Arrays.asList(row);
+        });
 
         StatsDto result = statsService.getGlobalStats();
 
@@ -85,25 +107,39 @@ class StatsServiceTest {
         assertThat(result.getTotalReviews()).isEqualTo(20);
         assertThat(result.getTotalRatings()).isEqualTo(15);
         assertThat(result.getAverageRating()).isEqualTo(5.0);
-        verify(bookRepository).count();
-        verify(userRepository).count();
-        verify(reviewRepository).count();
-        verify(ratingRepository).count();
-        verify(ratingRepository, atLeast(1)).findAll();
+        assertThat(result.getRatingsDistribution()).containsKey(5);
+        assertThat(result.getRatingsDistribution().get(5)).isEqualTo(15L);
+
+        for (int i = 1; i <= 5; i++) {
+            assertThat(result.getRatingsDistribution()).containsKey(i);
+        }
+        
+        verify(jdbcTemplate).queryForObject("SELECT COUNT(*) FROM books", Long.class);
+        verify(jdbcTemplate).queryForObject("SELECT COUNT(*) FROM users", Long.class);
+        verify(jdbcTemplate).queryForObject("SELECT COUNT(*) FROM reviews", Long.class);
+        verify(jdbcTemplate).queryForObject("SELECT COUNT(*) FROM ratings", Long.class);
+        verify(jdbcTemplate).queryForObject("SELECT AVG(rating_value) FROM ratings", Double.class);
+        verify(jdbcTemplate).query(anyString(), any(RowMapper.class));
     }
 
     @Test
     void testGetGlobalStats_NoRatings() {
-        when(bookRepository.count()).thenReturn(10L);
-        when(userRepository.count()).thenReturn(5L);
-        when(reviewRepository.count()).thenReturn(20L);
-        when(ratingRepository.count()).thenReturn(0L);
-        when(ratingRepository.findAll()).thenReturn(Collections.emptyList());
+        when(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM books", Long.class)).thenReturn(10L);
+        when(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users", Long.class)).thenReturn(5L);
+        when(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM reviews", Long.class)).thenReturn(20L);
+        when(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ratings", Long.class)).thenReturn(0L);
+        when(jdbcTemplate.queryForObject("SELECT AVG(rating_value) FROM ratings", Double.class)).thenReturn(null);
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class))).thenReturn(Collections.emptyList());
 
         StatsDto result = statsService.getGlobalStats();
 
         assertThat(result).isNotNull();
         assertThat(result.getAverageRating()).isEqualTo(0.0);
+        assertThat(result.getRatingsDistribution()).isNotNull();
+
+        for (int i = 1; i <= 5; i++) {
+            assertThat(result.getRatingsDistribution()).containsKey(i);
+        }
     }
 
     @Test
