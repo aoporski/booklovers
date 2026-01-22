@@ -5,6 +5,7 @@ import com.booklovers.dto.BookDto;
 import com.booklovers.dto.RatingDto;
 import com.booklovers.dto.ReviewDto;
 import com.booklovers.dto.UserDto;
+import com.booklovers.dto.UserStatsDto;
 import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.service.author.AuthorService;
 import com.booklovers.service.book.BookService;
@@ -273,7 +274,7 @@ public class BookWebController {
                 .orElseThrow(() -> new ResourceNotFoundException("Book", bookId));
         
         UserDto currentUser = userService.getCurrentUser();
-        if (!"ADMIN".equals(currentUser.getRole()) && !review.getUserId().equals(currentUser.getId())) {
+        if (!review.getUserId().equals(currentUser.getId())) {
             throw new com.booklovers.exception.ForbiddenException("You can only edit your own reviews");
         }
         
@@ -296,13 +297,11 @@ public class BookWebController {
             ReviewDto review = reviewService.getReviewById(reviewId)
                     .orElseThrow(() -> new ResourceNotFoundException("Review", reviewId));
             
-            if ("ADMIN".equals(currentUser.getRole())) {
-                reviewService.updateReviewAsAdmin(reviewId, reviewDto);
-            } else if (review.getUserId() != null && review.getUserId().equals(currentUser.getId())) {
-                reviewService.updateReview(reviewId, reviewDto);
-            } else {
+            if (review.getUserId() == null || !review.getUserId().equals(currentUser.getId())) {
                 throw new com.booklovers.exception.ForbiddenException("You can only edit your own reviews");
             }
+            
+            reviewService.updateReview(reviewId, reviewDto);
             
             if (reviewDto.getRatingValue() != null && reviewDto.getRatingValue() >= 1 && reviewDto.getRatingValue() <= 5) {
                 try {
@@ -354,5 +353,21 @@ public class BookWebController {
         
         log.error("=== DELETE REVIEW REQUEST END: bookId={}, reviewId={} ===", bookId, reviewId);
         return "redirect:/books/" + bookId;
+    }
+    
+    @GetMapping("/users/{id}")
+    public String userProfile(@PathVariable Long id, Model model) {
+        UserDto user = userService.findByIdDto(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        
+        if (user.getIsBlocked() != null && user.getIsBlocked()) {
+            throw new ResourceNotFoundException("User", id);
+        }
+        
+        UserStatsDto userStats = statsService.getUserStats(id);
+        
+        model.addAttribute("user", user);
+        model.addAttribute("userStats", userStats);
+        return "user-profile";
     }
 }

@@ -210,4 +210,38 @@ class UserControllerTest {
         
         verify(userService, never()).deleteUser(anyLong());
     }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void testDeleteCurrentUser_Success() throws Exception {
+        doNothing().when(userService).deleteCurrentUser();
+        
+        mockMvc.perform(delete("/api/users/me")
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+        
+        verify(userService).deleteCurrentUser();
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void testDeleteCurrentUser_NotFound() throws Exception {
+        doThrow(new ResourceNotFoundException("User not found"))
+                .when(userService).deleteCurrentUser();
+        
+        mockMvc.perform(delete("/api/users/me")
+                        .with(csrf()))
+                .andExpect(status().isNotFound());
+        
+        verify(userService).deleteCurrentUser();
+    }
+
+    @Test
+    void testDeleteCurrentUser_Unauthorized() throws Exception {
+        mockMvc.perform(delete("/api/users/me")
+                        .with(csrf()))
+                .andExpect(status().isUnauthorized());
+        
+        verify(userService, never()).deleteCurrentUser();
+    }
 }

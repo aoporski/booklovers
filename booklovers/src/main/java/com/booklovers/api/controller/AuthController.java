@@ -30,10 +30,10 @@ public class AuthController {
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
     
-    @Operation(summary = "Rejestracja nowego użytkownika", description = "Tworzy nowe konto użytkownika w systemie")
+    @Operation(summary = "Rejestracja nowego użytkownika", description = "Tworzy nowe konto użytkownika w systemie. Endpoint dostępny publicznie - nie wymaga autoryzacji. Po rejestracji użytkownik może się zalogować używając endpointu /api/auth/login.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Użytkownik został pomyślnie zarejestrowany"),
-            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe (np. użytkownik już istnieje)")
+            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe (np. użytkownik już istnieje, nieprawidłowy format email)")
     })
     @PostMapping("/register")
     public ResponseEntity<UserDto> register(@Valid @RequestBody RegisterRequest request) {
@@ -48,10 +48,10 @@ public class AuthController {
         }
     }
     
-    @Operation(summary = "Logowanie użytkownika", description = "Uwierzytelnia użytkownika i zwraca token sesji")
+    @Operation(summary = "Logowanie użytkownika", description = "Uwierzytelnia użytkownika w systemie. Po pomyślnym logowaniu tworzona jest sesja użytkownika, która jest używana do autoryzacji w kolejnych żądaniach. Endpoint dostępny publicznie - nie wymaga autoryzacji.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Logowanie zakończone sukcesem"),
-            @ApiResponse(responseCode = "401", description = "Nieprawidłowe dane logowania")
+            @ApiResponse(responseCode = "200", description = "Logowanie zakończone sukcesem - użytkownik jest zalogowany"),
+            @ApiResponse(responseCode = "401", description = "Nieprawidłowe dane logowania (błędna nazwa użytkownika lub hasło)")
     })
     @PostMapping("/login")
     public ResponseEntity<String> login(@Valid @RequestBody LoginRequest request) {

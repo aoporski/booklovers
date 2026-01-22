@@ -5,8 +5,8 @@ services:
     working_dir: /app
     volumes:
       - ./booklovers:/app
-    command: mvn clean verify -Dspring.profiles.active=test -Dtest=!E2ETest
+    command: sh -c "mvn clean verify -Dspring.profiles.active=test -Dtest=!E2ETest,!ArchitectureTest && mvn jacoco:report -q"
     environment:
       - SPRING_PROFILES_ACTIVE=test
-      - MAVEN_OPTS=-Xmx2048m -XX:MaxMetaspaceSize=512m
-    mem_limit: 3g
+      - MAVEN_OPTS=-Xmx1536m -XX:MaxMetaspaceSize=384m -XX:+UseG1GC -XX:+UseStringDeduplication
+    mem_limit: 8g

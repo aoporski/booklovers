@@ -146,6 +146,24 @@ public class UserServiceImp implements UserService {
     
     @Override
     @Transactional
+    public void deleteCurrentUser() {
+        log.info("Usuwanie konta aktualnego użytkownika");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        log.debug("Usuwanie konta użytkownika: username={}", username);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> {
+                    log.error("Nie znaleziono użytkownika do usunięcia: username={}", username);
+                    return new ResourceNotFoundException("User", username);
+                });
+        Long userId = user.getId();
+        log.info("Usuwanie konta użytkownika: userId={}, username={}", userId, username);
+        userRepository.deleteById(userId);
+        log.info("Konto użytkownika usunięte pomyślnie: userId={}, username={}", userId, username);
+    }
+    
+    @Override
+    @Transactional
     public UserDto blockUser(Long id) {
         log.info("Blokowanie użytkownika: userId={}", id);
         User user = userRepository.findById(id)

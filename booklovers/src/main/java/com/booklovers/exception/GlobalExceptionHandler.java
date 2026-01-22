@@ -1,6 +1,7 @@
 package com.booklovers.exception;
 
 import com.booklovers.dto.ErrorResponse;
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
+@Hidden
 public class GlobalExceptionHandler {
     
     @ExceptionHandler(ResourceNotFoundException.class)

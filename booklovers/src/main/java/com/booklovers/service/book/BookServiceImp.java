@@ -266,6 +266,31 @@ public class BookServiceImp implements BookService {
             throw new ConflictException("Book already exists in this shelf");
         }
         
+        List<String> defaultShelves = getDefaultShelves();
+        boolean isDefaultShelf = defaultShelves.contains(shelfName);
+        
+        if (isDefaultShelf) {
+            List<UserBook> existingInDefaultShelves = userBookRepository.findByUserIdAndBookId(user.getId(), bookId)
+                    .stream()
+                    .filter(ub -> ub.getBook() != null && defaultShelves.contains(ub.getShelfName()))
+                    .collect(Collectors.toList());
+            
+            if (!existingInDefaultShelves.isEmpty()) {
+                UserBook existingUserBook = existingInDefaultShelves.get(0);
+                String fromShelf = existingUserBook.getShelfName();
+                
+                if (fromShelf.equals(shelfName)) {
+                    throw new ConflictException("Book already exists in this shelf");
+                }
+                
+                moveBookToShelf(bookId, fromShelf, shelfName);
+                UserBook moved = userBookRepository.findByUserIdAndBookIdAndShelfName(
+                        user.getId(), bookId, shelfName)
+                        .orElseThrow(() -> new ResourceNotFoundException("Book", bookId));
+                return toUserBookDto(moved);
+            }
+        }
+        
         List<UserBook> emptyShelves = userBookRepository.findByUserIdAndShelfName(user.getId(), shelfName)
                 .stream()
                 .filter(ub -> ub.getBook() == null)

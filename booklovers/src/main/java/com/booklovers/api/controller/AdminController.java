@@ -33,18 +33,24 @@ public class AdminController {
     private final AuthorService authorService;
     private final ReviewService reviewService;
     
-    @Operation(summary = "Pobierz wszystkie książki (Admin)", description = "Zwraca listę wszystkich książek (dostępne tylko dla administratorów)")
-    @ApiResponse(responseCode = "200", description = "Lista książek")
+    @Operation(summary = "Pobierz wszystkie książki (Admin)", description = "Zwraca listę wszystkich książek w systemie. Wymaga roli ADMIN - tylko administratorzy mają dostęp.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista książek została zwrócona pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN")
+    })
     @GetMapping("/books")
     public ResponseEntity<List<BookDto>> getAllBooks() {
         List<BookDto> books = bookService.getAllBooks();
         return ResponseEntity.ok(books);
     }
     
-    @Operation(summary = "Utwórz książkę (Admin)", description = "Dodaje nową książkę do systemu (dostępne tylko dla administratorów)")
+    @Operation(summary = "Utwórz książkę (Admin)", description = "Dodaje nową książkę do systemu. Wymaga roli ADMIN - tylko administratorzy mogą tworzyć książki.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Książka została utworzona"),
-            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe")
+            @ApiResponse(responseCode = "201", description = "Książka została utworzona pomyślnie"),
+            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN")
     })
     @PostMapping("/books")
     public ResponseEntity<BookDto> createBook(@Valid @RequestBody BookDto bookDto) {
@@ -52,9 +58,11 @@ public class AdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdBook);
     }
     
-    @Operation(summary = "Aktualizuj książkę (Admin)", description = "Aktualizuje dane książki (dostępne tylko dla administratorów)")
+    @Operation(summary = "Aktualizuj książkę (Admin)", description = "Aktualizuje dane książki. Wymaga roli ADMIN - tylko administratorzy mogą aktualizować książki.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Książka została zaktualizowana"),
+            @ApiResponse(responseCode = "200", description = "Książka została zaktualizowana pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN"),
             @ApiResponse(responseCode = "404", description = "Książka nie została znaleziona")
     })
     @PutMapping("/books/{id}")
@@ -65,9 +73,11 @@ public class AdminController {
         return ResponseEntity.ok(updatedBook);
     }
     
-    @Operation(summary = "Usuń książkę (Admin)", description = "Usuwa książkę z systemu (dostępne tylko dla administratorów)")
+    @Operation(summary = "Usuń książkę (Admin)", description = "Usuwa książkę z systemu. Wymaga roli ADMIN - tylko administratorzy mogą usuwać książki.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Książka została usunięta"),
+            @ApiResponse(responseCode = "204", description = "Książka została usunięta pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN"),
             @ApiResponse(responseCode = "404", description = "Książka nie została znaleziona")
     })
     @DeleteMapping("/books/{id}")
@@ -77,17 +87,23 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
     
-    @Operation(summary = "Pobierz wszystkich użytkowników (Admin)", description = "Zwraca listę wszystkich użytkowników (dostępne tylko dla administratorów)")
-    @ApiResponse(responseCode = "200", description = "Lista użytkowników")
+    @Operation(summary = "Pobierz wszystkich użytkowników (Admin)", description = "Zwraca listę wszystkich użytkowników w systemie. Wymaga roli ADMIN - tylko administratorzy mają dostęp.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista użytkowników została zwrócona pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN")
+    })
     @GetMapping("/users")
     public ResponseEntity<List<UserDto>> getAllUsers() {
         List<UserDto> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
     
-    @Operation(summary = "Usuń użytkownika (Admin)", description = "Usuwa użytkownika z systemu (dostępne tylko dla administratorów)")
+    @Operation(summary = "Usuń użytkownika (Admin)", description = "Usuwa użytkownika z systemu. Wymaga roli ADMIN - tylko administratorzy mogą usuwać użytkowników.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Użytkownik został usunięty"),
+            @ApiResponse(responseCode = "204", description = "Użytkownik został usunięty pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN"),
             @ApiResponse(responseCode = "404", description = "Użytkownik nie został znaleziony")
     })
     @DeleteMapping("/users/{id}")
@@ -97,9 +113,11 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
     
-    @Operation(summary = "Zablokuj użytkownika (Admin)", description = "Blokuje konto użytkownika (dostępne tylko dla administratorów)")
+    @Operation(summary = "Zablokuj użytkownika (Admin)", description = "Blokuje konto użytkownika. Zablokowany użytkownik nie może się zalogować. Wymaga roli ADMIN - tylko administratorzy mogą blokować użytkowników.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Użytkownik został zablokowany"),
+            @ApiResponse(responseCode = "200", description = "Użytkownik został zablokowany pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN"),
             @ApiResponse(responseCode = "404", description = "Użytkownik nie został znaleziony")
     })
     @PutMapping("/users/{id}/block")
@@ -109,9 +127,11 @@ public class AdminController {
         return ResponseEntity.ok(user);
     }
     
-    @Operation(summary = "Odblokuj użytkownika (Admin)", description = "Odblokowuje konto użytkownika (dostępne tylko dla administratorów)")
+    @Operation(summary = "Odblokuj użytkownika (Admin)", description = "Odblokowuje konto użytkownika. Odblokowany użytkownik może ponownie się zalogować. Wymaga roli ADMIN - tylko administratorzy mogą odblokowywać użytkowników.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Użytkownik został odblokowany"),
+            @ApiResponse(responseCode = "200", description = "Użytkownik został odblokowany pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN"),
             @ApiResponse(responseCode = "404", description = "Użytkownik nie został znaleziony")
     })
     @PutMapping("/users/{id}/unblock")
@@ -123,17 +143,23 @@ public class AdminController {
     
     // ========== AUTHOR MANAGEMENT ==========
     
-    @Operation(summary = "Pobierz wszystkich autorów (Admin)", description = "Zwraca listę wszystkich autorów (dostępne tylko dla administratorów)")
-    @ApiResponse(responseCode = "200", description = "Lista autorów")
+    @Operation(summary = "Pobierz wszystkich autorów (Admin)", description = "Zwraca listę wszystkich autorów w systemie. Wymaga roli ADMIN - tylko administratorzy mają dostęp.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista autorów została zwrócona pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN")
+    })
     @GetMapping("/authors")
     public ResponseEntity<List<AuthorDto>> getAllAuthors() {
         List<AuthorDto> authors = authorService.getAllAuthors();
         return ResponseEntity.ok(authors);
     }
     
-    @Operation(summary = "Pobierz autora po ID (Admin)", description = "Zwraca szczegóły autora (dostępne tylko dla administratorów)")
+    @Operation(summary = "Pobierz autora po ID (Admin)", description = "Zwraca szczegóły autora o podanym ID. Wymaga roli ADMIN - tylko administratorzy mają dostęp.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Autor został znaleziony"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN"),
             @ApiResponse(responseCode = "404", description = "Autor nie został znaleziony")
     })
     @GetMapping("/authors/{id}")
@@ -144,10 +170,12 @@ public class AdminController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    @Operation(summary = "Utwórz autora (Admin)", description = "Dodaje nowego autora do systemu (dostępne tylko dla administratorów)")
+    @Operation(summary = "Utwórz autora (Admin)", description = "Dodaje nowego autora do systemu. Wymaga roli ADMIN - tylko administratorzy mogą tworzyć autorów.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Autor został utworzony"),
-            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe")
+            @ApiResponse(responseCode = "201", description = "Autor został utworzony pomyślnie"),
+            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN")
     })
     @PostMapping("/authors")
     public ResponseEntity<AuthorDto> createAuthor(@Valid @RequestBody AuthorDto authorDto) {
@@ -155,9 +183,11 @@ public class AdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdAuthor);
     }
     
-    @Operation(summary = "Aktualizuj autora (Admin)", description = "Aktualizuje dane autora (dostępne tylko dla administratorów)")
+    @Operation(summary = "Aktualizuj autora (Admin)", description = "Aktualizuje dane autora. Wymaga roli ADMIN - tylko administratorzy mogą aktualizować autorów.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Autor został zaktualizowany"),
+            @ApiResponse(responseCode = "200", description = "Autor został zaktualizowany pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN"),
             @ApiResponse(responseCode = "404", description = "Autor nie został znaleziony")
     })
     @PutMapping("/authors/{id}")
@@ -168,9 +198,11 @@ public class AdminController {
         return ResponseEntity.ok(updatedAuthor);
     }
     
-    @Operation(summary = "Usuń autora (Admin)", description = "Usuwa autora z systemu (dostępne tylko dla administratorów)")
+    @Operation(summary = "Usuń autora (Admin)", description = "Usuwa autora z systemu. Wymaga roli ADMIN - tylko administratorzy mogą usuwać autorów.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Autor został usunięty"),
+            @ApiResponse(responseCode = "204", description = "Autor został usunięty pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN"),
             @ApiResponse(responseCode = "404", description = "Autor nie został znaleziony")
     })
     @DeleteMapping("/authors/{id}")
@@ -182,9 +214,11 @@ public class AdminController {
     
     // ========== REVIEW MODERATION ==========
     
-    @Operation(summary = "Usuń recenzję jako admin (Admin)", description = "Usuwa recenzję z systemu - moderacja treści obraźliwych (dostępne tylko dla administratorów)")
+    @Operation(summary = "Usuń recenzję jako admin (Admin)", description = "Usuwa recenzję z systemu - moderacja treści obraźliwych. Administratorzy mogą usuwać recenzje bez względu na właściciela. Wymaga roli ADMIN.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Recenzja została usunięta"),
+            @ApiResponse(responseCode = "204", description = "Recenzja została usunięta pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola ADMIN"),
             @ApiResponse(responseCode = "404", description = "Recenzja nie została znaleziona")
     })
     @DeleteMapping("/reviews/{id}")

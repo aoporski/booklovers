@@ -22,16 +22,20 @@ public class StatsController {
     private final StatsService statsService;
     private final UserService userService;
     
-    @Operation(summary = "Pobierz statystyki globalne", description = "Zwraca zagregowane statystyki dla całej platformy")
-    @ApiResponse(responseCode = "200", description = "Statystyki globalne")
+    @Operation(summary = "Pobierz statystyki globalne", description = "Zwraca zagregowane statystyki dla całej platformy (liczba książek, użytkowników, recenzji, ocen). Endpoint dostępny publicznie.")
+    @ApiResponse(responseCode = "200", description = "Statystyki globalne zostały zwrócone pomyślnie")
     @GetMapping("/books")
     public ResponseEntity<StatsDto> getGlobalStats() {
         StatsDto stats = statsService.getGlobalStats();
         return ResponseEntity.ok(stats);
     }
     
-    @Operation(summary = "Pobierz statystyki zalogowanego użytkownika", description = "Zwraca statystyki czytelnictwa dla zalogowanego użytkownika")
-    @ApiResponse(responseCode = "200", description = "Statystyki użytkownika")
+    @Operation(summary = "Pobierz statystyki zalogowanego użytkownika", description = "Zwraca statystyki czytelnictwa dla zalogowanego użytkownika (liczba przeczytanych książek, średnia ocena, wyzwanie czytelnicze). Wymaga autoryzacji.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Statystyki użytkownika zostały zwrócone pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "404", description = "Użytkownik nie został znaleziony")
+    })
     @GetMapping("/user")
     public ResponseEntity<UserStatsDto> getCurrentUserStats() {
             com.booklovers.dto.UserDto currentUser = userService.getCurrentUser();
@@ -39,9 +43,9 @@ public class StatsController {
             return ResponseEntity.ok(stats);
     }
     
-    @Operation(summary = "Pobierz statystyki użytkownika", description = "Zwraca statystyki czytelnictwa dla określonego użytkownika")
+    @Operation(summary = "Pobierz statystyki użytkownika", description = "Zwraca statystyki czytelnictwa dla określonego użytkownika (liczba przeczytanych książek, średnia ocena, wyzwanie czytelnicze). Endpoint dostępny publicznie.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Statystyki użytkownika"),
+            @ApiResponse(responseCode = "200", description = "Statystyki użytkownika zostały zwrócone pomyślnie"),
             @ApiResponse(responseCode = "404", description = "Użytkownik nie został znaleziony")
     })
     @GetMapping("/user/{userId}")
@@ -51,9 +55,9 @@ public class StatsController {
             return ResponseEntity.ok(stats);
     }
     
-    @Operation(summary = "Pobierz statystyki książki", description = "Zwraca statystyki czytelnictwa dla określonej książki (liczba czytelników, średnia ocena, rozkład ocen)")
+    @Operation(summary = "Pobierz statystyki książki", description = "Zwraca statystyki czytelnictwa dla określonej książki (liczba czytelników, średnia ocena, rozkład ocen). Endpoint dostępny publicznie.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Statystyki książki"),
+            @ApiResponse(responseCode = "200", description = "Statystyki książki zostały zwrócone pomyślnie"),
             @ApiResponse(responseCode = "404", description = "Książka nie została znaleziona")
     })
     @GetMapping("/book/{bookId}")

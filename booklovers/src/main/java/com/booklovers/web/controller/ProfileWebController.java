@@ -56,15 +56,12 @@ public class ProfileWebController {
         try {
             log.info("Aktualizacja profilu użytkownika");
             
-            // Pobierz aktualnego użytkownika, aby zachować istniejące dane
             UserDto currentUser = userService.getCurrentUser();
             
-            // Jeśli przesłano plik, zapisz go i ustaw ścieżkę
             if (avatarFile != null && !avatarFile.isEmpty()) {
                 log.info("Przesyłanie zdjęcia profilowego: originalFilename={}, size={}", 
                         avatarFile.getOriginalFilename(), avatarFile.getSize());
                 
-                // Usuń stare zdjęcie tylko jeśli to plik lokalny (nie URL)
                 if (currentUser.getAvatarUrl() != null && !currentUser.getAvatarUrl().isEmpty() 
                         && !currentUser.getAvatarUrl().startsWith("http")) {
                     try {
@@ -81,12 +78,10 @@ public class ProfileWebController {
                     }
                 }
                 
-                // Zapisz nowe zdjęcie
                 String filePath = fileStorageService.storeFile(avatarFile, "avatars");
                 userDto.setAvatarUrl(filePath);
                 log.info("Zdjęcie profilowe zapisane: path={}", filePath);
             } else {
-                // Jeśli nie przesłano pliku, zachowaj istniejące avatarUrl
                 userDto.setAvatarUrl(currentUser.getAvatarUrl());
             }
             
@@ -111,14 +106,12 @@ public class ProfileWebController {
                 return ResponseEntity.notFound().build();
             }
             
-            // Jeśli to URL zewnętrzny, przekieruj
             if (avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://")) {
                 return ResponseEntity.status(302)
                         .header(HttpHeaders.LOCATION, avatarUrl)
                         .build();
             }
             
-            // Jeśli to plik lokalny, pobierz go
             String[] parts = avatarUrl.split("/");
             if (parts.length < 2) {
                 log.warn("Nieprawidłowa ścieżka do zdjęcia profilowego: {}", avatarUrl);
@@ -159,14 +152,12 @@ public class ProfileWebController {
                 return ResponseEntity.notFound().build();
             }
             
-            // Jeśli to URL zewnętrzny, przekieruj
             if (avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://")) {
                 return ResponseEntity.status(302)
                         .header(HttpHeaders.LOCATION, avatarUrl)
                         .build();
             }
             
-            // Jeśli to plik lokalny, pobierz go
             String[] parts = avatarUrl.split("/");
             if (parts.length < 2) {
                 return ResponseEntity.notFound().build();
@@ -274,6 +265,39 @@ public class ProfileWebController {
             redirectAttributes.addFlashAttribute("error", "Błąd podczas importu danych: " + e.getMessage());
         }
         return "redirect:/profile";
+    }
+    
+    @PostMapping("/delete")
+    public String deleteAccount(RedirectAttributes redirectAttributes) {
+        try {
+            log.info("Usuwanie konta użytkownika");
+            UserDto currentUser = userService.getCurrentUser();
+            
+            if (currentUser.getAvatarUrl() != null && !currentUser.getAvatarUrl().isEmpty() 
+                    && !currentUser.getAvatarUrl().startsWith("http")) {
+                try {
+                    String oldPath = currentUser.getAvatarUrl();
+                    if (oldPath.contains("/")) {
+                        String[] parts = oldPath.split("/");
+                        if (parts.length >= 2) {
+                            fileStorageService.deleteFile(parts[parts.length - 1], parts[parts.length - 2]);
+                            log.debug("Zdjęcie profilowe usunięte podczas usuwania konta: path={}", oldPath);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Nie można usunąć zdjęcia profilowego podczas usuwania konta", e);
+                }
+            }
+            
+            userService.deleteCurrentUser();
+            redirectAttributes.addFlashAttribute("success", "Twoje konto zostało usunięte pomyślnie!");
+            log.info("Konto użytkownika usunięte pomyślnie");
+            return "redirect:/login?accountDeleted=true";
+        } catch (Exception e) {
+            log.error("Błąd podczas usuwania konta", e);
+            redirectAttributes.addFlashAttribute("error", "Wystąpił błąd podczas usuwania konta: " + e.getMessage());
+            return "redirect:/profile";
+        }
     }
     
     private String getFileExtension(String filename) {

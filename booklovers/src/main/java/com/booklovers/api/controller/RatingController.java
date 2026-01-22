@@ -23,10 +23,12 @@ public class RatingController {
     
     private final RatingService ratingService;
     
-    @Operation(summary = "Utwórz lub zaktualizuj ocenę", description = "Dodaje nową ocenę lub aktualizuje istniejącą dla książki (wymaga autoryzacji)")
+    @Operation(summary = "Utwórz lub zaktualizuj ocenę", description = "Dodaje nową ocenę (1-5) lub aktualizuje istniejącą dla książki. Wymaga autoryzacji - użytkownik musi być zalogowany.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Ocena została zapisana"),
-            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe")
+            @ApiResponse(responseCode = "200", description = "Ocena została zapisana pomyślnie"),
+            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe (ocena musi być w zakresie 1-5)"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "404", description = "Książka nie została znaleziona")
     })
     @PostMapping("/books/{bookId}")
     public ResponseEntity<RatingDto> createOrUpdateRating(
@@ -36,9 +38,10 @@ public class RatingController {
         return ResponseEntity.ok(rating);
     }
     
-    @Operation(summary = "Usuń ocenę", description = "Usuwa ocenę książki (wymaga autoryzacji)")
+    @Operation(summary = "Usuń ocenę", description = "Usuwa ocenę książki. Wymaga autoryzacji - użytkownik musi być zalogowany.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Ocena została usunięta"),
+            @ApiResponse(responseCode = "204", description = "Ocena została usunięta pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
             @ApiResponse(responseCode = "404", description = "Ocena nie została znaleziona")
     })
     @DeleteMapping("/books/{bookId}")
@@ -48,9 +51,10 @@ public class RatingController {
         return ResponseEntity.noContent().build();
     }
     
-    @Operation(summary = "Pobierz moją ocenę książki", description = "Zwraca ocenę zalogowanego użytkownika dla danej książki")
+    @Operation(summary = "Pobierz moją ocenę książki", description = "Zwraca ocenę zalogowanego użytkownika dla danej książki. Wymaga autoryzacji - użytkownik musi być zalogowany.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Ocena została znaleziona"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
             @ApiResponse(responseCode = "404", description = "Ocena nie została znaleziona")
     })
     @GetMapping("/books/{bookId}/my-rating")
@@ -61,8 +65,8 @@ public class RatingController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    @Operation(summary = "Pobierz oceny książki", description = "Zwraca wszystkie oceny dla danej książki")
-    @ApiResponse(responseCode = "200", description = "Lista ocen książki")
+    @Operation(summary = "Pobierz oceny książki", description = "Zwraca wszystkie oceny dla danej książki. Endpoint dostępny publicznie - nie wymaga autoryzacji.")
+    @ApiResponse(responseCode = "200", description = "Lista ocen książki została zwrócona pomyślnie")
     @GetMapping("/books/{bookId}")
     public ResponseEntity<List<RatingDto>> getRatingsByBookId(
             @Parameter(description = "ID książki", required = true) @PathVariable Long bookId) {
@@ -70,8 +74,8 @@ public class RatingController {
         return ResponseEntity.ok(ratings);
     }
     
-    @Operation(summary = "Pobierz oceny użytkownika", description = "Zwraca wszystkie oceny wystawione przez użytkownika")
-    @ApiResponse(responseCode = "200", description = "Lista ocen użytkownika")
+    @Operation(summary = "Pobierz oceny użytkownika", description = "Zwraca wszystkie oceny wystawione przez użytkownika. Endpoint dostępny publicznie - nie wymaga autoryzacji.")
+    @ApiResponse(responseCode = "200", description = "Lista ocen użytkownika została zwrócona pomyślnie")
     @GetMapping("/users/{userId}")
     public ResponseEntity<List<RatingDto>> getRatingsByUserId(
             @Parameter(description = "ID użytkownika", required = true) @PathVariable Long userId) {

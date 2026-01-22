@@ -17,6 +17,10 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+    doc-expansion: none
+  packages-to-scan: com.booklovers.api.controller
 
 file:
   upload-dir: uploads

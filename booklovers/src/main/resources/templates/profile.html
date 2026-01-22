@@ -130,7 +130,7 @@
                     </div>
                 </div>
                 
-                <div class="card">
+                <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0">Import danych</h5>
                     </div>
@@ -143,6 +143,26 @@
                                 <small class="form-text text-muted">Obsługiwane formaty: .json, .csv (format wykrywany automatycznie)</small>
                             </div>
                             <button type="submit" class="btn btn-success">📤 Zaimportuj dane</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">⚠️ Usuń konto</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-danger"><strong>Uwaga!</strong> Ta operacja jest nieodwracalna.</p>
+                        <p class="text-muted">Po usunięciu konta wszystkie Twoje dane zostaną trwale usunięte, w tym:</p>
+                        <ul class="text-muted">
+                            <li>Twoje książki w biblioteczce</li>
+                            <li>Wszystkie recenzje</li>
+                            <li>Wszystkie oceny</li>
+                            <li>Zdjęcie profilowe</li>
+                        </ul>
+                        <p class="text-muted">Zalecamy najpierw wyeksportować swoje dane przed usunięciem konta.</p>
+                        <form th:action="@{/profile/delete}" method="post" id="deleteAccountForm" onsubmit="return confirmDelete()">
+                            <button type="submit" class="btn btn-danger">🗑️ Usuń moje konto</button>
                         </form>
                     </div>
                 </div>
@@ -211,6 +231,10 @@
                 };
                 reader.readAsDataURL(input.files[0]);
             }
+        }
+        
+        function confirmDelete() {
+            return confirm('Czy na pewno chcesz usunąć swoje konto? Ta operacja jest nieodwracalna!\n\nWszystkie Twoje dane zostaną trwale usunięte.');
         }
     </script>
 </body>

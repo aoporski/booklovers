@@ -493,4 +493,44 @@ class UserServiceTest {
         verify(userRepository).findById(1L);
         verify(userRepository, never()).save(any(User.class));
     }
+
+    @Test
+    void testDeleteCurrentUser_Success() {
+        User user = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .build();
+        
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        SecurityContextHolder.setContext(securityContext);
+        
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn("testuser");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        
+        userService.deleteCurrentUser();
+        
+        verify(userRepository).findByUsername("testuser");
+        verify(userRepository).deleteById(1L);
+    }
+
+    @Test
+    void testDeleteCurrentUser_NotFound() {
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        SecurityContextHolder.setContext(securityContext);
+        
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn("testuser");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
+        
+        assertThrows(com.booklovers.exception.ResourceNotFoundException.class, () -> {
+            userService.deleteCurrentUser();
+        });
+        
+        verify(userRepository).findByUsername("testuser");
+        verify(userRepository, never()).deleteById(anyLong());
+    }
 }

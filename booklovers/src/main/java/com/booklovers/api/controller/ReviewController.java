@@ -23,10 +23,12 @@ public class ReviewController {
     
     private final ReviewService reviewService;
     
-    @Operation(summary = "Utwórz recenzję", description = "Dodaje nową recenzję do książki (wymaga autoryzacji)")
+    @Operation(summary = "Utwórz recenzję", description = "Dodaje nową recenzję do książki. Wymaga autoryzacji - użytkownik musi być zalogowany.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Recenzja została utworzona"),
-            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe")
+            @ApiResponse(responseCode = "201", description = "Recenzja została utworzona pomyślnie"),
+            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe (np. recenzja już istnieje dla tej książki)"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "404", description = "Książka nie została znaleziona")
     })
     @PostMapping("/books/{bookId}")
     public ResponseEntity<ReviewDto> createReview(
@@ -36,10 +38,12 @@ public class ReviewController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdReview);
     }
     
-    @Operation(summary = "Aktualizuj recenzję", description = "Aktualizuje recenzję (tylko właściciel recenzji)")
+    @Operation(summary = "Aktualizuj recenzję", description = "Aktualizuje recenzję. Tylko właściciel recenzji może ją edytować. Wymaga autoryzacji - użytkownik musi być zalogowany.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Recenzja została zaktualizowana"),
-            @ApiResponse(responseCode = "403", description = "Brak uprawnień do edycji recenzji")
+            @ApiResponse(responseCode = "200", description = "Recenzja została zaktualizowana pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień do edycji recenzji - tylko właściciel może edytować"),
+            @ApiResponse(responseCode = "404", description = "Recenzja nie została znaleziona")
     })
     @PutMapping("/{id}")
     public ResponseEntity<ReviewDto> updateReview(
@@ -49,10 +53,12 @@ public class ReviewController {
         return ResponseEntity.ok(updatedReview);
     }
     
-    @Operation(summary = "Usuń recenzję", description = "Usuwa recenzję (tylko właściciel recenzji)")
+    @Operation(summary = "Usuń recenzję", description = "Usuwa recenzję. Tylko właściciel recenzji może ją usunąć. Wymaga autoryzacji - użytkownik musi być zalogowany.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Recenzja została usunięta"),
-            @ApiResponse(responseCode = "403", description = "Brak uprawnień do usunięcia recenzji")
+            @ApiResponse(responseCode = "204", description = "Recenzja została usunięta pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień do usunięcia recenzji - tylko właściciel może usunąć"),
+            @ApiResponse(responseCode = "404", description = "Recenzja nie została znaleziona")
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteReview(
@@ -61,7 +67,7 @@ public class ReviewController {
         return ResponseEntity.noContent().build();
     }
     
-    @Operation(summary = "Pobierz recenzję po ID", description = "Zwraca szczegóły recenzji o podanym ID")
+    @Operation(summary = "Pobierz recenzję po ID", description = "Zwraca szczegóły recenzji o podanym ID. Endpoint dostępny publicznie - nie wymaga autoryzacji.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Recenzja została znaleziona"),
             @ApiResponse(responseCode = "404", description = "Recenzja nie została znaleziona")
@@ -74,8 +80,8 @@ public class ReviewController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    @Operation(summary = "Pobierz recenzje książki", description = "Zwraca wszystkie recenzje dla danej książki")
-    @ApiResponse(responseCode = "200", description = "Lista recenzji książki")
+    @Operation(summary = "Pobierz recenzje książki", description = "Zwraca wszystkie recenzje dla danej książki. Endpoint dostępny publicznie - nie wymaga autoryzacji.")
+    @ApiResponse(responseCode = "200", description = "Lista recenzji książki została zwrócona pomyślnie")
     @GetMapping("/books/{bookId}")
     public ResponseEntity<List<ReviewDto>> getReviewsByBookId(
             @Parameter(description = "ID książki", required = true) @PathVariable Long bookId) {
@@ -83,8 +89,8 @@ public class ReviewController {
         return ResponseEntity.ok(reviews);
     }
     
-    @Operation(summary = "Pobierz recenzje użytkownika", description = "Zwraca wszystkie recenzje napisane przez użytkownika")
-    @ApiResponse(responseCode = "200", description = "Lista recenzji użytkownika")
+    @Operation(summary = "Pobierz recenzje użytkownika", description = "Zwraca wszystkie recenzje napisane przez użytkownika. Endpoint dostępny publicznie - nie wymaga autoryzacji.")
+    @ApiResponse(responseCode = "200", description = "Lista recenzji użytkownika została zwrócona pomyślnie")
     @GetMapping("/users/{userId}")
     public ResponseEntity<List<ReviewDto>> getReviewsByUserId(
             @Parameter(description = "ID użytkownika", required = true) @PathVariable Long userId) {

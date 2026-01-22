@@ -22,8 +22,12 @@ public class ExportController {
     private final ExportService exportService;
     private final UserService userService;
     
-    @Operation(summary = "Eksportuj dane użytkownika", description = "Eksportuje dane zalogowanego użytkownika (książki, recenzje, oceny)")
-    @ApiResponse(responseCode = "200", description = "Dane użytkownika")
+    @Operation(summary = "Eksportuj dane użytkownika", description = "Eksportuje dane zalogowanego użytkownika (książki, recenzje, oceny) w formacie DTO. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Dane użytkownika zostały zwrócone pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "404", description = "Użytkownik nie został znaleziony")
+    })
     @GetMapping("/user")
     public ResponseEntity<UserDataExportDto> exportCurrentUserData() {
         com.booklovers.dto.UserDto currentUser = userService.getCurrentUser();
@@ -31,10 +35,12 @@ public class ExportController {
         return ResponseEntity.ok(data);
     }
     
-    @Operation(summary = "Eksportuj dane użytkownika jako JSON", description = "Eksportuje dane użytkownika w formacie JSON do pobrania")
+    @Operation(summary = "Eksportuj dane użytkownika jako JSON", description = "Eksportuje dane zalogowanego użytkownika w formacie JSON do pobrania. Zwraca plik JSON z wszystkimi danymi użytkownika (książki, recenzje, oceny, półki). Wymaga autoryzacji - użytkownik musi być zalogowany.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Plik JSON z danymi użytkownika"),
-            @ApiResponse(responseCode = "500", description = "Błąd podczas eksportu")
+            @ApiResponse(responseCode = "200", description = "Plik JSON z danymi użytkownika został wygenerowany pomyślnie"),
+            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
+            @ApiResponse(responseCode = "404", description = "Użytkownik nie został znaleziony"),
+            @ApiResponse(responseCode = "500", description = "Błąd wewnętrzny serwera podczas eksportu danych")
     })
     @GetMapping(value = "/user/json", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> exportCurrentUserDataAsJson() {

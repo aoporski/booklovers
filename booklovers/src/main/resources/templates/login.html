@@ -25,6 +25,9 @@
                             <div th:if="${param.logout}" class="alert alert-success">
                                 Zostałeś wylogowany pomyślnie.
                             </div>
+                            <div th:if="${param.accountDeleted}" class="alert alert-info">
+                                Twoje konto zostało usunięte pomyślnie.
+                            </div>
                             <div class="mb-3">
                                 <label for="username" class="form-label">Nazwa użytkownika</label>
                                 <input type="text" class="form-control" id="username" name="username" required autofocus>

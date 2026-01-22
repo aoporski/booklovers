@@ -507,8 +507,7 @@ class BookWebControllerTest {
         when(userService.getCurrentUser()).thenReturn(adminUser);
 
         mockMvc.perform(get("/books/1/reviews/1/edit"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("edit-review"));
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -559,7 +558,8 @@ class BookWebControllerTest {
 
         when(userService.getCurrentUser()).thenReturn(adminUser);
         when(reviewService.getReviewById(1L)).thenReturn(Optional.of(existingReview));
-        when(reviewService.updateReviewAsAdmin(eq(1L), any(ReviewDto.class))).thenReturn(existingReview);
+        doThrow(new com.booklovers.exception.ForbiddenException("Administrators cannot edit reviews"))
+                .when(reviewService).updateReview(eq(1L), any(ReviewDto.class));
 
         mockMvc.perform(post("/books/1/reviews/1/edit")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -567,9 +567,9 @@ class BookWebControllerTest {
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/books/1"))
-                .andExpect(flash().attributeExists("success"));
+                .andExpect(flash().attributeExists("error"));
 
-        verify(reviewService, atLeastOnce()).updateReviewAsAdmin(eq(1L), any(ReviewDto.class));
+        verify(reviewService, never()).updateReviewAsAdmin(anyLong(), any(ReviewDto.class));
     }
 
     @Test

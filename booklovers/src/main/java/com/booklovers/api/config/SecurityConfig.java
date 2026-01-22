@@ -37,12 +37,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**", "/", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll() // Swagger UI
-                .requestMatchers("/books", "/books/{id}").permitAll() // Przeglądanie książek bez logowania
+                .requestMatchers("/books", "/books/{id}", "/users/{id}").permitAll() // Przeglądanie książek i profili użytkowników bez logowania
                 .requestMatchers("/books/add", "/books/*/add-to-library", "/books/*/reviews", "/books/*/reviews/*/delete", "/books/*/reviews/*/edit").authenticated() // Dodawanie wymaga logowania
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/**").authenticated()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/my-books", "/profile", "/profile/avatar", "/profile/avatar/**", "/api/export/**").authenticated()
+                .requestMatchers("/my-books", "/profile", "/api/export/**").authenticated()
+                .requestMatchers("/profile/avatar", "/profile/avatar/**").permitAll() // Avatary dostępne publicznie
                 .anyRequest().authenticated()
             )
             .headers(headers -> headers.frameOptions().sameOrigin())

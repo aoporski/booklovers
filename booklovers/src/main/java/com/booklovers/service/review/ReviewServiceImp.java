@@ -102,6 +102,11 @@ public class ReviewServiceImp implements ReviewService {
                     return new ResourceNotFoundException("User", username);
                 });
         
+        if (user.getRole() == User.Role.ADMIN) {
+            log.warn("Próba aktualizacji recenzji przez administratora: userId={}, reviewId={}", user.getId(), id);
+            throw new ForbiddenException("Administrators cannot edit reviews");
+        }
+        
         Review review = reviewRepository.findByIdWithUser(id)
                 .orElseThrow(() -> {
                     log.error("Nie znaleziono recenzji do aktualizacji: reviewId={}", id);

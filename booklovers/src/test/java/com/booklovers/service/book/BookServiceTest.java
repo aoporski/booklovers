@@ -32,6 +32,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.lenient;
 
@@ -548,6 +549,80 @@ class BookServiceTest {
     }
 
     @Test
+    void testUpdateBook_WithAllFields() {
+        java.time.LocalDate publicationDate = java.time.LocalDate.of(2020, 1, 15);
+        
+        BookDto updateDto = BookDto.builder()
+                .title("Updated Book")
+                .isbn("978-1234567890")
+                .description("Updated description")
+                .publisher("Updated Publisher")
+                .publicationDate(publicationDate)
+                .pageCount(300)
+                .language("English")
+                .coverImageUrl("https://example.com/cover.jpg")
+                .build();
+
+        Book existingBook = Book.builder()
+                .id(1L)
+                .title("Original Book")
+                .isbn("1234567890")
+                .description("Original description")
+                .publisher("Original Publisher")
+                .publicationDate(java.time.LocalDate.of(2019, 1, 1))
+                .pageCount(200)
+                .language("Polish")
+                .coverImageUrl("https://example.com/old-cover.jpg")
+                .build();
+
+        Book updatedBook = Book.builder()
+                .id(1L)
+                .title("Updated Book")
+                .isbn("978-1234567890")
+                .description("Updated description")
+                .publisher("Updated Publisher")
+                .publicationDate(publicationDate)
+                .pageCount(300)
+                .language("English")
+                .coverImageUrl("https://example.com/cover.jpg")
+                .build();
+
+        BookDto outputDto = BookDto.builder()
+                .id(1L)
+                .title("Updated Book")
+                .isbn("978-1234567890")
+                .description("Updated description")
+                .publisher("Updated Publisher")
+                .publicationDate(publicationDate)
+                .pageCount(300)
+                .language("English")
+                .coverImageUrl("https://example.com/cover.jpg")
+                .build();
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(existingBook));
+        when(bookRepository.save(any(Book.class))).thenReturn(updatedBook);
+        when(bookMapper.toDto(updatedBook)).thenReturn(outputDto);
+        when(ratingRepository.getAverageRatingByBookId(1L)).thenReturn(4.5);
+
+        BookDto result = bookService.updateBook(1L, updateDto);
+
+        assertNotNull(result);
+        assertEquals("Updated Book", result.getTitle());
+        assertEquals("978-1234567890", result.getIsbn());
+        assertEquals("Updated description", result.getDescription());
+        assertEquals("Updated Publisher", result.getPublisher());
+        assertEquals(publicationDate, result.getPublicationDate());
+        assertEquals(300, result.getPageCount());
+        assertEquals("English", result.getLanguage());
+        assertEquals("https://example.com/cover.jpg", result.getCoverImageUrl());
+        assertEquals(4.5, result.getAverageRating());
+        
+        verify(bookRepository).findById(1L);
+        verify(bookRepository).save(any(Book.class));
+        verify(ratingRepository).getAverageRatingByBookId(1L);
+    }
+
+    @Test
     void testRemoveBookFromUserLibrary_Success() {
         String shelfName = "Przeczytane";
         UserBook userBook = UserBook.builder()
@@ -649,5 +724,146 @@ class BookServiceTest {
 
         assertNotNull(result);
         verify(bookRepository).findAll();
+    }
+
+    @Test
+    void testAddBookToUserLibrary_NewBookToDefaultShelf() {
+        String shelfName = "Przeczytane";
+        UserBook savedUserBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(shelfName)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, shelfName))
+                .thenReturn(Optional.empty());
+        when(userBookRepository.findByUserIdAndBookId(1L, 1L))
+                .thenReturn(Collections.emptyList());
+        when(userBookRepository.findByUserIdAndShelfName(1L, shelfName))
+                .thenReturn(Collections.emptyList());
+        when(userBookRepository.save(any(UserBook.class))).thenReturn(savedUserBook);
+
+        com.booklovers.dto.UserBookDto result = bookService.addBookToUserLibrary(1L, shelfName);
+
+        assertNotNull(result);
+        assertEquals(shelfName, result.getShelfName());
+        verify(userBookRepository).save(any(UserBook.class));
+    }
+
+    @Test
+    void testAddBookToUserLibrary_MoveFromDefaultShelfToAnotherDefaultShelf() {
+        String fromShelf = "Przeczytane";
+        String toShelf = "Chcę przeczytać";
+        UserBook existingUserBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(fromShelf)
+                .build();
+        UserBook movedUserBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(toShelf)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        when(userBookRepository.findByUserIdAndBookId(1L, 1L))
+                .thenReturn(Arrays.asList(existingUserBook));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(eq(1L), eq(1L), eq(toShelf)))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(movedUserBook));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(eq(1L), eq(1L), eq(fromShelf)))
+                .thenReturn(Optional.of(existingUserBook));
+        when(userBookRepository.findByUserIdAndShelfName(eq(1L), eq(toShelf)))
+                .thenReturn(Collections.emptyList());
+        lenient().when(userBookRepository.findByUserIdAndShelfName(eq(1L), eq(fromShelf)))
+                .thenReturn(Collections.emptyList());
+        when(userBookRepository.save(any(UserBook.class))).thenAnswer(invocation -> {
+            UserBook ub = invocation.getArgument(0);
+            ub.setShelfName(toShelf);
+            return ub;
+        });
+
+        com.booklovers.dto.UserBookDto result = bookService.addBookToUserLibrary(1L, toShelf);
+
+        assertNotNull(result);
+        assertEquals(toShelf, result.getShelfName());
+        verify(userBookRepository, atLeastOnce()).save(any(UserBook.class));
+    }
+
+    @Test
+    void testAddBookToUserLibrary_AddToCustomShelfWhenInDefaultShelf() {
+        String defaultShelf = "Przeczytane";
+        String customShelf = "Moja biblioteczka";
+        UserBook newUserBook = UserBook.builder()
+                .id(2L)
+                .user(user)
+                .book(book)
+                .shelfName(customShelf)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, customShelf))
+                .thenReturn(Optional.empty());
+        when(userBookRepository.findByUserIdAndShelfName(1L, customShelf))
+                .thenReturn(Collections.emptyList());
+        when(userBookRepository.save(any(UserBook.class))).thenReturn(newUserBook);
+
+        com.booklovers.dto.UserBookDto result = bookService.addBookToUserLibrary(1L, customShelf);
+
+        assertNotNull(result);
+        assertEquals(customShelf, result.getShelfName());
+        verify(userBookRepository).save(any(UserBook.class));
+    }
+
+    @Test
+    void testAddBookToUserLibrary_AlreadyInSameShelf() {
+        String shelfName = "Przeczytane";
+        UserBook existingUserBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(shelfName)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, shelfName))
+                .thenReturn(Optional.of(existingUserBook));
+
+        assertThrows(ConflictException.class, () -> {
+            bookService.addBookToUserLibrary(1L, shelfName);
+        });
+
+        verify(userBookRepository, never()).save(any(UserBook.class));
+    }
+
+    @Test
+    void testAddBookToUserLibrary_MoveFromDefaultShelfToSameDefaultShelf() {
+        String shelfName = "Przeczytane";
+        UserBook existingUserBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(shelfName)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, shelfName))
+                .thenReturn(Optional.of(existingUserBook));
+
+        assertThrows(ConflictException.class, () -> {
+            bookService.addBookToUserLibrary(1L, shelfName);
+        });
+
+        verify(userBookRepository, never()).save(any(UserBook.class));
     }
 }
