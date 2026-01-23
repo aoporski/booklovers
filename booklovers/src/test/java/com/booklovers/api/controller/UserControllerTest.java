@@ -242,18 +242,14 @@ class UserControllerTest {
         verify(userService).getAllUsers();
     }
     
-    // UWAGA: Testy dla DELETE /api/users/{id} zostały usunięte, ponieważ endpoint został usunięty ze względów bezpieczeństwa.
-    // Zwykli użytkownicy nie mogą usuwać kont innych użytkowników.
-    // Administratorzy mogą usuwać konta przez DELETE /api/admin/users/{id} (testowane w AdminControllerTest).
     
     @Test
     @WithMockUser(username = "testuser")
     void testDeleteUser_EndpointDoesNotExist() throws Exception {
-        // Endpoint DELETE /api/users/{id} nie istnieje - Spring może zwrócić 404, 405 lub 500
-        // Najważniejsze jest to, że serwis nie został wywołany - endpoint nie działa poprawnie
+
         mockMvc.perform(delete("/api/users/1")
                         .with(csrf()))
-                .andExpect(status().is5xxServerError()); // Spring zwraca 500 dla nieistniejących endpointów
+                .andExpect(status().is5xxServerError()); 
         
         verify(userService, never()).deleteUser(anyLong());
     }
