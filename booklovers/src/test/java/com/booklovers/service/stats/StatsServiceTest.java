@@ -217,4 +217,70 @@ class StatsServiceTest {
         assertThat(result.getRatingsCount()).isEqualTo(0);
         assertThat(result.getAverageRating()).isEqualTo(0.0);
     }
+
+    @Test
+    void testGetUserStats_UserBooksIsNull() {
+        // Test dla linii 110-113 - user.getUserBooks() == null
+        User userWithNullUserBooks = User.builder()
+                .id(1L)
+                .username("testuser")
+                .userBooks(null) // null userBooks
+                .reviews(null)
+                .ratings(null)
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(userWithNullUserBooks));
+        when(userBookRepository.findDistinctShelfNamesByUserId(1L)).thenReturn(Collections.emptyList());
+        when(userBookRepository.countBooksReadInYear(1L, 2026)).thenReturn(0L);
+
+        UserStatsDto result = statsService.getUserStats(1L);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getBooksRead()).isEqualTo(0); // Powinno zwrócić 0 gdy userBooks jest null
+        assertThat(result.getReviewsWritten()).isEqualTo(0);
+        assertThat(result.getRatingsGiven()).isEqualTo(0);
+        assertThat(result.getAverageRatingGiven()).isEqualTo(0.0);
+    }
+
+    @Test
+    void testGetUserStats_RatingsIsNull() {
+        // Test dla linii 120-122 - user.getRatings() == null
+        User userWithNullRatings = User.builder()
+                .id(1L)
+                .username("testuser")
+                .userBooks(Collections.emptyList())
+                .reviews(Collections.emptyList())
+                .ratings(null) // null ratings
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(userWithNullRatings));
+        when(userBookRepository.findDistinctShelfNamesByUserId(1L)).thenReturn(Collections.emptyList());
+        when(userBookRepository.countBooksReadInYear(1L, 2026)).thenReturn(0L);
+
+        UserStatsDto result = statsService.getUserStats(1L);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getAverageRatingGiven()).isEqualTo(0.0); // Powinno zwrócić 0.0 gdy ratings jest null
+    }
+
+    @Test
+    void testGetUserStats_RatingsIsEmpty() {
+        // Test dla linii 120-122 - user.getRatings().isEmpty()
+        User userWithEmptyRatings = User.builder()
+                .id(1L)
+                .username("testuser")
+                .userBooks(Collections.emptyList())
+                .reviews(Collections.emptyList())
+                .ratings(Collections.emptyList()) // Pusta lista ratings
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(userWithEmptyRatings));
+        when(userBookRepository.findDistinctShelfNamesByUserId(1L)).thenReturn(Collections.emptyList());
+        when(userBookRepository.countBooksReadInYear(1L, 2026)).thenReturn(0L);
+
+        UserStatsDto result = statsService.getUserStats(1L);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getAverageRatingGiven()).isEqualTo(0.0); // Powinno zwrócić 0.0 gdy ratings jest puste
+    }
 }

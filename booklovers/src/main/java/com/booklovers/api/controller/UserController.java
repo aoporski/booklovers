@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class UserController {
     private final UserService userService;
     
     @Operation(summary = "Pobierz aktualnego użytkownika", description = "Zwraca dane zalogowanego użytkownika (profil, statystyki). Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Dane użytkownika zostały zwrócone pomyślnie"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
@@ -35,10 +37,11 @@ public class UserController {
   
     }
     
-    @Operation(summary = "Aktualizuj profil użytkownika", description = "Aktualizuje dane profilu zalogowanego użytkownika (imię, nazwisko, bio, avatar). Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @Operation(summary = "Aktualizuj profil użytkownika", description = "Aktualizuje dane profilu zalogowanego użytkownika (imię, nazwisko, bio, avatar, hasło). UWAGA: Username i email nie mogą być zmieniane przez ten endpoint - są tylko do odczytu. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Profil został zaktualizowany pomyślnie"),
-            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe (np. nieprawidłowy format email)"),
+            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe (np. próba zmiany username/email, nieprawidłowy format danych)"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany")
     })
     @PutMapping("/me")
@@ -48,6 +51,7 @@ public class UserController {
     }
     
     @Operation(summary = "Usuń swoje konto", description = "Usuwa konto zalogowanego użytkownika. Operacja nieodwracalna - wszystkie dane użytkownika zostaną usunięte. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Konto zostało usunięte pomyślnie"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
@@ -60,6 +64,7 @@ public class UserController {
     }
     
     @Operation(summary = "Pobierz wszystkich użytkowników", description = "Zwraca listę wszystkich użytkowników w systemie. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista użytkowników została zwrócona pomyślnie"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany")
@@ -70,16 +75,7 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
     
-    @Operation(summary = "Usuń użytkownika", description = "Usuwa użytkownika z systemu. Wymaga autoryzacji - użytkownik musi być zalogowany.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Użytkownik został usunięty pomyślnie"),
-            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
-            @ApiResponse(responseCode = "404", description = "Użytkownik nie został znaleziony")
-    })
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(
-            @Parameter(description = "ID użytkownika", required = true) @PathVariable Long id) {
-            userService.deleteUser(id);
-            return ResponseEntity.noContent().build();
-    }
+    // UWAGA: Endpoint DELETE /api/users/{id} został usunięty ze względów bezpieczeństwa.
+    // Zwykli użytkownicy mogą usuwać tylko swoje własne konto przez DELETE /api/users/me.
+    // Administratorzy mogą usuwać konta innych użytkowników przez DELETE /api/admin/users/{id}.
 }

@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,7 @@ public class StatsController {
     }
     
     @Operation(summary = "Pobierz statystyki zalogowanego użytkownika", description = "Zwraca statystyki czytelnictwa dla zalogowanego użytkownika (liczba przeczytanych książek, średnia ocena, wyzwanie czytelnicze). Wymaga autoryzacji.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Statystyki użytkownika zostały zwrócone pomyślnie"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),

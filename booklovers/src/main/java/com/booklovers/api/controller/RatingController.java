@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class RatingController {
     private final RatingService ratingService;
     
     @Operation(summary = "Utwórz lub zaktualizuj ocenę", description = "Dodaje nową ocenę (1-5) lub aktualizuje istniejącą dla książki. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Ocena została zapisana pomyślnie"),
             @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe (ocena musi być w zakresie 1-5)"),
@@ -39,6 +41,7 @@ public class RatingController {
     }
     
     @Operation(summary = "Usuń ocenę", description = "Usuwa ocenę książki. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Ocena została usunięta pomyślnie"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
@@ -52,6 +55,7 @@ public class RatingController {
     }
     
     @Operation(summary = "Pobierz moją ocenę książki", description = "Zwraca ocenę zalogowanego użytkownika dla danej książki. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Ocena została znaleziona"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),

@@ -6,6 +6,7 @@ import com.booklovers.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -23,6 +24,7 @@ public class ExportController {
     private final UserService userService;
     
     @Operation(summary = "Eksportuj dane użytkownika", description = "Eksportuje dane zalogowanego użytkownika (książki, recenzje, oceny) w formacie DTO. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Dane użytkownika zostały zwrócone pomyślnie"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
@@ -36,6 +38,7 @@ public class ExportController {
     }
     
     @Operation(summary = "Eksportuj dane użytkownika jako JSON", description = "Eksportuje dane zalogowanego użytkownika w formacie JSON do pobrania. Zwraca plik JSON z wszystkimi danymi użytkownika (książki, recenzje, oceny, półki). Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Plik JSON z danymi użytkownika został wygenerowany pomyślnie"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),

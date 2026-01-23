@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class ReviewController {
     private final ReviewService reviewService;
     
     @Operation(summary = "Utwórz recenzję", description = "Dodaje nową recenzję do książki. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Recenzja została utworzona pomyślnie"),
             @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe (np. recenzja już istnieje dla tej książki)"),
@@ -39,6 +41,7 @@ public class ReviewController {
     }
     
     @Operation(summary = "Aktualizuj recenzję", description = "Aktualizuje recenzję. Tylko właściciel recenzji może ją edytować. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Recenzja została zaktualizowana pomyślnie"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
@@ -54,6 +57,7 @@ public class ReviewController {
     }
     
     @Operation(summary = "Usuń recenzję", description = "Usuwa recenzję. Tylko właściciel recenzji może ją usunąć. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Recenzja została usunięta pomyślnie"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),

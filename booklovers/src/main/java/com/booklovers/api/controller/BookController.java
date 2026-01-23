@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -47,44 +48,12 @@ public class BookController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    @Operation(summary = "Utwórz nową książkę", description = "Dodaje nową książkę do systemu. Wymaga autoryzacji - użytkownik musi być zalogowany.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Książka została utworzona pomyślnie"),
-            @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe"),
-            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany")
-    })
-    @PostMapping
-    public ResponseEntity<BookDto> createBook(@Valid @RequestBody BookDto bookDto) {
-        BookDto createdBook = bookService.createBook(bookDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdBook);
-    }
-    
-    @Operation(summary = "Aktualizuj książkę", description = "Aktualizuje dane książki o podanym ID. Wymaga autoryzacji - użytkownik musi być zalogowany.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Książka została zaktualizowana pomyślnie"),
-            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
-            @ApiResponse(responseCode = "404", description = "Książka nie została znaleziona")
-    })
-    @PutMapping("/{id}")
-    public ResponseEntity<BookDto> updateBook(
-            @Parameter(description = "ID książki", required = true) @PathVariable Long id,
-            @Valid @RequestBody BookDto bookDto) {
-        BookDto updatedBook = bookService.updateBook(id, bookDto);
-        return ResponseEntity.ok(updatedBook);
-    }
-    
-    @Operation(summary = "Usuń książkę", description = "Usuwa książkę z systemu. Wymaga autoryzacji - użytkownik musi być zalogowany.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Książka została usunięta pomyślnie"),
-            @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany"),
-            @ApiResponse(responseCode = "404", description = "Książka nie została znaleziona")
-    })
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBook(
-            @Parameter(description = "ID książki", required = true) @PathVariable Long id) {
-        bookService.deleteBook(id);
-        return ResponseEntity.noContent().build();
-    }
+    // UWAGA: Endpointy do tworzenia, aktualizacji i usuwania książek zostały usunięte ze względów bezpieczeństwa.
+    // Zwykli użytkownicy nie mogą modyfikować książek - to może robić tylko administrator.
+    // Administratorzy mogą zarządzać książkami przez endpointy w AdminController:
+    // - POST /api/admin/books - tworzenie książek
+    // - PUT /api/admin/books/{id} - aktualizacja książek
+    // - DELETE /api/admin/books/{id} - usuwanie książek
     
     @Operation(summary = "Wyszukaj książki", description = "Wyszukuje książki po tytule, autorze lub ISBN. Endpoint dostępny publicznie - nie wymaga autoryzacji.")
     @ApiResponse(responseCode = "200", description = "Lista znalezionych książek")
@@ -96,6 +65,7 @@ public class BookController {
     }
     
     @Operation(summary = "Pobierz moje książki", description = "Zwraca listę książek w biblioteczce zalogowanego użytkownika. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista książek użytkownika została zwrócona pomyślnie"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany")
@@ -108,6 +78,7 @@ public class BookController {
     }
     
     @Operation(summary = "Dodaj książkę do biblioteczki", description = "Dodaje książkę do biblioteczki użytkownika na określoną półkę (np. 'Przeczytane', 'Czytam', 'Chcę przeczytać'). Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Książka została dodana do biblioteczki pomyślnie"),
             @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe (np. książka już jest na tej półce)"),
@@ -123,6 +94,7 @@ public class BookController {
     }
     
     @Operation(summary = "Usuń książkę z biblioteczki", description = "Usuwa książkę z biblioteczki użytkownika z określonej półki. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Książka została usunięta z biblioteczki pomyślnie"),
             @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe (np. książka nie jest na tej półce)"),
@@ -138,6 +110,7 @@ public class BookController {
     }
     
     @Operation(summary = "Pobierz moje półki", description = "Zwraca listę wszystkich półek użytkownika (np. 'Przeczytane', 'Czytam', 'Chcę przeczytać', 'Moja biblioteczka'). Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista półek użytkownika została zwrócona pomyślnie"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany")
@@ -150,6 +123,7 @@ public class BookController {
     }
     
     @Operation(summary = "Pobierz książki z półki", description = "Zwraca listę książek z określonej półki użytkownika. Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista książek z półki została zwrócona pomyślnie"),
             @ApiResponse(responseCode = "401", description = "Brak autoryzacji - użytkownik nie jest zalogowany")
@@ -163,6 +137,7 @@ public class BookController {
     }
     
     @Operation(summary = "Przenieś książkę między półkami", description = "Przenosi książkę z jednej półki na drugą (np. z 'Chcę przeczytać' na 'Czytam'). Wymaga autoryzacji - użytkownik musi być zalogowany.")
+    @SecurityRequirement(name = "cookieAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Książka została przeniesiona pomyślnie"),
             @ApiResponse(responseCode = "400", description = "Nieprawidłowe dane wejściowe (np. książka nie jest na źródłowej półce)"),

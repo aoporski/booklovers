@@ -533,4 +533,291 @@ class UserServiceTest {
         verify(userRepository).findByUsername("testuser");
         verify(userRepository, never()).deleteById(anyLong());
     }
+
+    // Testy zabezpieczeń dla updateUser
+
+    @Test
+    void testUpdateUser_AttemptToChangeOtherUserId_ShouldThrowBadRequestException() {
+        User loggedUser = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("Test")
+                .lastName("User")
+                .build();
+
+        UserDto updateDto = UserDto.builder()
+                .id(999L) // Próba zmiany ID innego użytkownika
+                .firstName("New")
+                .build();
+
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn("testuser");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(loggedUser));
+
+        com.booklovers.exception.BadRequestException exception = assertThrows(
+                com.booklovers.exception.BadRequestException.class, () -> {
+                    userService.updateUser(updateDto);
+                });
+
+        assertEquals("You can only update your own profile", exception.getMessage());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void testUpdateUser_AttemptToChangeUsername_ShouldThrowBadRequestException() {
+        User user = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("Test")
+                .lastName("User")
+                .build();
+
+        UserDto updateDto = UserDto.builder()
+                .username("newusername") // Próba zmiany username
+                .firstName("New")
+                .build();
+
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn("testuser");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+
+        com.booklovers.exception.BadRequestException exception = assertThrows(
+                com.booklovers.exception.BadRequestException.class, () -> {
+                    userService.updateUser(updateDto);
+                });
+
+        assertEquals("Username cannot be changed", exception.getMessage());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void testUpdateUser_AttemptToChangeEmail_ShouldThrowBadRequestException() {
+        User user = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("Test")
+                .lastName("User")
+                .build();
+
+        UserDto updateDto = UserDto.builder()
+                .email("newemail@example.com") // Próba zmiany email
+                .firstName("New")
+                .build();
+
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn("testuser");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+
+        com.booklovers.exception.BadRequestException exception = assertThrows(
+                com.booklovers.exception.BadRequestException.class, () -> {
+                    userService.updateUser(updateDto);
+                });
+
+        assertEquals("Email cannot be changed", exception.getMessage());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void testUpdateUser_SameUsernameAndEmail_ShouldSucceed() {
+        User user = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("Old")
+                .lastName("Name")
+                .build();
+
+        UserDto updateDto = UserDto.builder()
+                .id(1L) // To samo ID
+                .username("testuser") // Ten sam username
+                .email("test@example.com") // Ten sam email
+                .firstName("New")
+                .lastName("Name")
+                .build();
+
+        User updatedUser = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("New")
+                .lastName("Name")
+                .build();
+
+        UserDto resultDto = UserDto.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("New")
+                .lastName("Name")
+                .build();
+
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn("testuser");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
+        when(userMapper.toDto(updatedUser)).thenReturn(resultDto);
+
+        UserDto result = userService.updateUser(updateDto);
+
+        assertNotNull(result);
+        assertEquals("New", result.getFirstName());
+        assertEquals("testuser", result.getUsername());
+        assertEquals("test@example.com", result.getEmail());
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void testUpdateUser_UsernameWithWhitespace_ShouldSucceed() {
+        User user = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("Old")
+                .build();
+
+        UserDto updateDto = UserDto.builder()
+                .username("  testuser  ") // Username z białymi znakami, ale taki sam po trim
+                .email("test@example.com")
+                .firstName("New")
+                .build();
+
+        User updatedUser = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("New")
+                .build();
+
+        UserDto resultDto = UserDto.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("New")
+                .build();
+
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn("testuser");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
+        when(userMapper.toDto(updatedUser)).thenReturn(resultDto);
+
+        UserDto result = userService.updateUser(updateDto);
+
+        assertNotNull(result);
+        assertEquals("New", result.getFirstName());
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void testUpdateUser_EmailCaseInsensitive_ShouldSucceed() {
+        User user = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("Old")
+                .build();
+
+        UserDto updateDto = UserDto.builder()
+                .email("TEST@EXAMPLE.COM") // Email w różnych przypadkach, ale taki sam
+                .firstName("New")
+                .build();
+
+        User updatedUser = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("New")
+                .build();
+
+        UserDto resultDto = UserDto.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("New")
+                .build();
+
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn("testuser");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
+        when(userMapper.toDto(updatedUser)).thenReturn(resultDto);
+
+        UserDto result = userService.updateUser(updateDto);
+
+        assertNotNull(result);
+        assertEquals("New", result.getFirstName());
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void testUpdateUser_EmailWithWhitespace_ShouldSucceed() {
+        User user = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("Old")
+                .build();
+
+        UserDto updateDto = UserDto.builder()
+                .email("  test@example.com  ") // Email z białymi znakami, ale taki sam po trim
+                .firstName("New")
+                .build();
+
+        User updatedUser = User.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("New")
+                .build();
+
+        UserDto resultDto = UserDto.builder()
+                .id(1L)
+                .username("testuser")
+                .email("test@example.com")
+                .firstName("New")
+                .build();
+
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn("testuser");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
+        when(userMapper.toDto(updatedUser)).thenReturn(resultDto);
+
+        UserDto result = userService.updateUser(updateDto);
+
+        assertNotNull(result);
+        assertEquals("New", result.getFirstName());
+        verify(userRepository).save(any(User.class));
+    }
 }

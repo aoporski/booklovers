@@ -3,6 +3,7 @@ package com.booklovers.service.user;
 import com.booklovers.dto.RegisterRequest;
 import com.booklovers.dto.UserDto;
 import com.booklovers.entity.User;
+import com.booklovers.exception.BadRequestException;
 import com.booklovers.exception.ConflictException;
 import com.booklovers.exception.ResourceNotFoundException;
 import com.booklovers.repository.UserRepository;
@@ -99,6 +100,27 @@ public class UserServiceImp implements UserService {
                     return new ResourceNotFoundException("User", username);
                 });
         
+        if (userDto.getId() != null && !userDto.getId().equals(user.getId())) {
+            log.warn("Próba zmiany danych innego użytkownika: loggedUserId={}, attemptedUserId={}", 
+                    user.getId(), userDto.getId());
+            throw new BadRequestException("You can only update your own profile");
+        }
+        
+        String dtoUsername = userDto.getUsername() != null ? userDto.getUsername().trim() : null;
+        String dtoEmail = userDto.getEmail() != null ? userDto.getEmail().trim() : null;
+        
+        if (dtoUsername != null && !dtoUsername.equals(user.getUsername())) {
+            log.warn("Próba zmiany username przez użytkownika: userId={}, currentUsername={}, attemptedUsername={}", 
+                    user.getId(), user.getUsername(), dtoUsername);
+            throw new BadRequestException("Username cannot be changed");
+        }
+        
+        if (dtoEmail != null && !dtoEmail.equalsIgnoreCase(user.getEmail())) {
+            log.warn("Próba zmiany email przez użytkownika: userId={}, currentEmail={}, attemptedEmail={}", 
+                    user.getId(), user.getEmail(), dtoEmail);
+            throw new BadRequestException("Email cannot be changed");
+        }
+                
         if (userDto.getFirstName() != null) {
             log.debug("Aktualizacja firstName dla użytkownika: userId={}", user.getId());
             user.setFirstName(userDto.getFirstName());

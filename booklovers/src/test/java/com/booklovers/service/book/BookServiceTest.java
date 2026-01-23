@@ -866,4 +866,153 @@ class BookServiceTest {
 
         verify(userBookRepository, never()).save(any(UserBook.class));
     }
+
+    @Test
+    void testAddBookToUserLibrary_BookAlreadyInSameDefaultShelf_FromExistingInDefaultShelves() {
+        // Test dla linii 279 - gdy książka już jest na tej samej default shelf
+        String shelfName = "Przeczytane";
+        UserBook existingUserBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(shelfName)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, shelfName))
+                .thenReturn(Optional.empty()); // Nie znaleziono w bezpośrednim sprawdzeniu
+        when(userBookRepository.findByUserIdAndBookId(1L, 1L))
+                .thenReturn(Arrays.asList(existingUserBook)); // Ale jest w default shelves
+
+        assertThrows(ConflictException.class, () -> {
+            bookService.addBookToUserLibrary(1L, shelfName);
+        });
+
+        verify(userBookRepository, never()).save(any(UserBook.class));
+    }
+
+    @Test
+    void testAddBookToUserLibrary_DeleteEmptyShelves() {
+        // Test dla linii 295 - usuwanie pustych półek
+        String shelfName = "Przeczytane";
+        UserBook emptyShelf = UserBook.builder()
+                .id(2L)
+                .user(user)
+                .book(null) // Pusta półka
+                .shelfName(shelfName)
+                .build();
+        UserBook savedUserBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(shelfName)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, shelfName))
+                .thenReturn(Optional.empty());
+        when(userBookRepository.findByUserIdAndBookId(1L, 1L))
+                .thenReturn(Collections.emptyList());
+        when(userBookRepository.findByUserIdAndShelfName(1L, shelfName))
+                .thenReturn(Arrays.asList(emptyShelf)); // Pusta półka istnieje
+        doNothing().when(userBookRepository).deleteAll(any());
+        when(userBookRepository.save(any(UserBook.class))).thenReturn(savedUserBook);
+
+        com.booklovers.dto.UserBookDto result = bookService.addBookToUserLibrary(1L, shelfName);
+
+        assertNotNull(result);
+        verify(userBookRepository).deleteAll(any()); // Sprawdzamy, że puste półki zostały usunięte
+        verify(userBookRepository).save(any(UserBook.class));
+    }
+
+    @Test
+    void testMoveBookToShelf_FromShelfIsNull() {
+        // Test dla linii 336 - fromShelf jest null
+        String toShelf = "Chcę przeczytać";
+        UserBook userBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName("Moja biblioteczka")
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, "Moja biblioteczka"))
+                .thenReturn(Optional.of(userBook));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, toShelf))
+                .thenReturn(Optional.empty());
+        when(userBookRepository.findByUserIdAndShelfName(1L, toShelf))
+                .thenReturn(Collections.emptyList());
+        when(userBookRepository.save(any(UserBook.class))).thenReturn(userBook);
+
+        bookService.moveBookToShelf(1L, null, toShelf);
+
+        verify(userBookRepository).findByUserIdAndBookIdAndShelfName(1L, 1L, "Moja biblioteczka");
+        verify(userBookRepository).save(any(UserBook.class));
+    }
+
+    @Test
+    void testMoveBookToShelf_ToShelfIsNull() {
+        // Test dla linii 339 - toShelf jest null
+        String fromShelf = "Przeczytane";
+        UserBook userBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(fromShelf)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, fromShelf))
+                .thenReturn(Optional.of(userBook));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, "Moja biblioteczka"))
+                .thenReturn(Optional.empty());
+        when(userBookRepository.findByUserIdAndShelfName(1L, "Moja biblioteczka"))
+                .thenReturn(Collections.emptyList());
+        when(userBookRepository.save(any(UserBook.class))).thenReturn(userBook);
+
+        bookService.moveBookToShelf(1L, fromShelf, null);
+
+        verify(userBookRepository).findByUserIdAndBookIdAndShelfName(1L, 1L, fromShelf);
+        verify(userBookRepository).findByUserIdAndBookIdAndShelfName(1L, 1L, "Moja biblioteczka");
+        verify(userBookRepository).save(any(UserBook.class));
+    }
+
+    @Test
+    void testMoveBookToShelf_DeleteEmptyShelves() {
+        // Test dla linii 358-359 - usuwanie pustych półek i flush
+        String fromShelf = "Przeczytane";
+        String toShelf = "Chcę przeczytać";
+        UserBook userBook = UserBook.builder()
+                .id(1L)
+                .user(user)
+                .book(book)
+                .shelfName(fromShelf)
+                .build();
+        UserBook emptyShelf = UserBook.builder()
+                .id(2L)
+                .user(user)
+                .book(null) // Pusta półka
+                .shelfName(toShelf)
+                .build();
+
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, fromShelf))
+                .thenReturn(Optional.of(userBook));
+        when(userBookRepository.findByUserIdAndBookIdAndShelfName(1L, 1L, toShelf))
+                .thenReturn(Optional.empty());
+        when(userBookRepository.findByUserIdAndShelfName(1L, toShelf))
+                .thenReturn(Arrays.asList(emptyShelf)); // Pusta półka istnieje
+        doNothing().when(userBookRepository).deleteAll(any());
+        doNothing().when(userBookRepository).flush();
+        when(userBookRepository.save(any(UserBook.class))).thenReturn(userBook);
+
+        bookService.moveBookToShelf(1L, fromShelf, toShelf);
+
+        verify(userBookRepository).deleteAll(any()); // Linia 358
+        verify(userBookRepository).flush(); // Linia 359
+        verify(userBookRepository).save(any(UserBook.class));
+    }
 }
